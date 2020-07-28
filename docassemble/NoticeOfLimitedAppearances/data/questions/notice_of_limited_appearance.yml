@@ -310,6 +310,8 @@ fields:
     datatype: date
     required: False
     show if: need_others
+  - note: |
+      Notice to all other parties: For all matters listed above, both the LAR Attorney and the Party must be served. See Trial Court Rule XVI.
 validation code: |
   if (not showifdef('need_motion') and \
       (not showifdef('need_hearing')) and \
