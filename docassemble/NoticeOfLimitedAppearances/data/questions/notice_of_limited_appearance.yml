@@ -497,7 +497,8 @@ subquestion: |
   This form must be signed by both Attorney and by the Party who is receiving representation. Attorney can sign below using the mouse or touchpad on the computer.
 signature: users[0].signature
 under: |
-  Attorney
+  ${users[0]}
+progress: 99
 ---
 id: date of signature by Attorney
 question: |
