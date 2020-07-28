@@ -68,7 +68,6 @@ code: |
   users[0].phone_number
   users[0].fax
   users[0].email
-  users[0].other_contact_method
   preview_screen
   agrees_to_certify
   users[0].signature
@@ -129,57 +128,27 @@ code: |
   
   set_empty_others_details = True
 ---
-# Temporarily disable
-if: |
-  False # preferred_court == 'Housing Court'
-id: court information
-sets:
-  - courts[0].name
-question: |
-  What court is the case being heard in?
-subquestion: |
-  Your case can be heard in one of these courts: ${comma_and_list(allowed_courts)}.
-  
-  % if preferred_court and found_housing_court:
-  We have tried to select the court your case is most likely to be in
-  below, based on the address you gave us.
-  
-  We think you are most likely to file in ${local_housing_court}, which
-  is at ${local_housing_court.address.on_one_line(include_unit=True)}
-  
-  ${map_of(local_housing_court.address)}
-  % else:
-  You can try finding your local court by using the [Courthouse Locator](https://www.mass.gov/guides/find-a-courthouse-serving-you). 
-  % endif
-fields:
-  - Court name: courts[0]
-    datatype: object
-    choices: macourts.filter_courts(allowed_courts)
-    default: local_housing_court
-continue button field: ask_court_question    
-#help: |
-#  % if local_housing_court:
-#  ${quote_paragraphs(local_housing_court.description)}
-#  % endif
----
 id: basic questions intro screen
 question: |
-  Ask the Court for Notice of Limited Appearance: MassAccess Project
+  Ask the Court for Notice of Limited Apearance: Mass Access Project
 subquestion: |
-  This website can help you complete and download your forms in 3 steps:
-
-  Step 1. Answer questions that will fill in your forms for you.  
-  Step 2. Preview the completed forms.  
-  Step 3. Email the forms to yourself or download them so you can send the forms to the court or keep them as part of your safety plan.
-
-  Tap the {green words} in any screen for a definition or more information.
+ 
+  This website can help you complete and file court forms in 3 steps:
+  
+  Step 1. Answer questions to prefill your forms.  
+  Step 2. Review the completed forms.  
+  Step 3. Email the forms to the court using this secure website and save copies
+  for yourself for later reference.  
+  
+  If you have questions about this form or the court process, 
+  call the Trial Court’s Emergency HelpLine:  
+  833-91-COURT (833-912-6878)  
+  Monday-Friday  
+  8:30am - 4:30pm
 
   % if chat_partners_available().help:
-
   Live help is currently available in this interview. Click the speech bubble
-
   (:comment-alt:) in the navigation bar to connect to a live advocate for help.
-
   % endif
 
 fields:
@@ -193,19 +162,18 @@ fields:
       minlength: |
         You cannot continue unless you agree to the terms of use.        
 continue button field: basic_questions_intro_screen
-terms:
-  green words: |
-    Green words are legal terms or a short way of referring to something that needs more explanation. The definition or explanation pops up when you tap the green words.
-right: |
-  % if user_has_saved_answers:
-
-  ${fa_icon("bell", color="primary", size="sm")}
-
-  Saved answers available!  
-
-  ${action_button_html(url_action('load_answer'), icon="folder-open", label=word("View answers"), size="sm" )}
-
-  % endif    
+---
+id: court question
+question: |
+  What court is the case being heard in?
+subquestion: |
+  The case can be heard in these courts: ${comma_and_list(allowed_courts)}.
+  The local court can be found by using the [Courthouse Locator](https://www.mass.gov/guides/find-a-courthouse-serving-you).
+fields:
+  - Court name: courts[0]
+    datatype: object
+    choices: macourts.filter_courts(allowed_courts)
+continue button field: ask_court_question
 ---
 id: docket number
 #continue button field: docket_number_question
@@ -213,13 +181,11 @@ question: |
   What is the docket number for your case?
 fields:
   - Docket Number: docket_numbers[0]
-    required: False
+    required: True
 ---
 id: parties question
 question: |
   Who are the parties in this case?
-subquestion: |
-  Please be specific.
 fields:
   - Name of Plaintiff/Petitoner: other_parties[0].name.first
     required: True
@@ -228,7 +194,7 @@ fields:
 ---
 id: Attorney name
 question:  |
-  Name of Attorney
+  What is your name?
 fields:
   - First Name: users[0].name.first
   - Middle Name: users[0].name.middle
@@ -239,19 +205,18 @@ fields:
       name_suffix()
     required: False 
 ---
+id: interpreter question
 question: |
-  Preferred language
+  Does your client need an interpreter?
 subquestion: |
   Your client has the right to an interpreter. 
   
   If they are not 100% confident about speaking English, ask for an interpreter. 
   If there is any chance:
-
   - They may not understand everything that is said in English. Or
   - Other people in the hearing will not be able to understand them.
   
   Then ask.
-
   They do not have to speak only through the interpeter, but they will have one if they   need one.
 fields:
   - I want an interpreter: user_needs_interpreter
@@ -386,15 +351,16 @@ fields:
 need: agrees_to_tos
 question: All done
 ---
-id: contact information
+id: address and fax number
 question: |
-  Attorney contact information (address)
+  Address and Fax Number
 fields:
   - Firm or Agency Name (if applicable): firm_agency_name
     required: False
   - B.B.O. Number: bbo_number
   - Street Address: users[0].address.address
   - Apt/Unit Number: users[0].address.unit
+    required: False
   - City: users[0].address.city
   - State: users[0].address.state
     code: |
@@ -402,10 +368,11 @@ fields:
     default: MA      
   - Zip: users[0].address.zip
   - Fax Number: users[0].fax
+    required: False
 ---
-id: contact information (number/email)
+id: phone number and email
 question: |
-  Attorney contact information (number/email)
+  Phone Number and Email
 subquestion: |
   The court needs to be able to reach you to schedule your hearing.
   
@@ -416,25 +383,11 @@ fields:
     required: False
   - Email address: users[0].email    
     datatype: email
-  - Other ways to reach you: users[0].other_contact_method
-    input type: area
-    required: False
-    help: |
-      If you do not have a phone number or email the court can use, provide
-      specific contact instructions. For example, use a friend's phone number.
-      But the friend must be someone you can rely on to tell you the court is
-      trying to reach you.
 validation code: |
   if (not showifdef('users[0].home_number') and \
       (not showifdef('users[0].mobile_number')) and \
-      (not showifdef('users[0].email')) and \
-      (not showifdef('users[0].other_contact_method'))):
-    validation_error(word("You need to provide at least one contact method."))
-help: |
-  The court **must** be able to reach you. So you have to give them some way to do this.
-  
-  Some forms allow you to tell the court you need to keep your address, phone,
-  and email confidential, so that only court staff can see this information.      
+      (not showifdef('users[0].email'))): 
+    validation_error(word("You need to provide at least one contact method."))     
 ---
 id: preview screen
 question: |
@@ -446,7 +399,6 @@ subquestion: |
   to fix the mistakes.
   
   ${ form_to_sign }
-
 continue button field: preview_screen
 ---
 code: |
