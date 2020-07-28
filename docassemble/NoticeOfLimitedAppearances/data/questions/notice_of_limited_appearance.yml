@@ -25,6 +25,7 @@ code: |
 code: |       
   #final_form_to_file = notice_of_limited_appearance
   form_to_file_no_cover = notice_of_limited_appearance
+  final_form = notice_of_limited_appearance
 ---
 objects: 
   - clients: PeopleList
@@ -35,7 +36,6 @@ code: |
   interview_presets
   basic_questions_intro_screen
   ask_court_question
-  #docket_number_question 
   docket_numbers[0]
   other_parties[0].name.first
   other_parties[1].name.first
@@ -174,12 +174,15 @@ fields:
     choices: macourts.filter_courts(allowed_courts)
 continue button field: ask_court_question
 ---
-id: docket number
-#continue button field: docket_number_question
+id: docket numbers
 question: |
-  What is the docket number for your case?
+  What is the docket number for this case?
+subquestion: |
+  If there are multiple docket numbers on this form, you can click "${word("Add another")}"
+  to add more than one.
+list collect: True
 fields:
-  - Docket Number: docket_numbers[0]
+  - no label: docket_numbers[i]
     required: True
 ---
 id: parties question
@@ -250,9 +253,9 @@ code: |
   clients.there_are_any = True
 ---
 id: events or issues
-question: |
+comment: |
   List of event(s) or issue(s) requiring representation
-subquestion: |
+question: |
   The Attorney and the Client have both signed a written agreement for the Attorney to represent the Party on a limited basis in the following court event(s) or discrete issue(s) as described below (List event date where applicable).
 fields:
   - Motion: need_motion
@@ -537,22 +540,22 @@ fields:
   - Date: signature_date
     datatype: date
     default: ${today().format("yyyy-MM-dd")}
-#---
-#event: download
-#question: |
-#  Your form is ready
-#subquestion: |
-#  Look over the form below.
-#  
-#  1. If it looks correct, download or email it to yourself.
-#  2. You still need to deliver it to the ${courts[0]}. You may be able to get help with delivery if you call
-#  the court's emergency help line.
-#
-#
-#  Court's emergency help line:    
-#  833-91-COURT (833-912-6878)  
-#  Monday-Friday  
-#  8:30am - 4:30pm
-#  
-#  ${ final_form }
-#attachment code: notice_of_limited_appearance
+---
+id: download final form
+event: download
+question: |
+  Your form is ready
+subquestion: |
+  Look over the form below.
+  
+  1. If it looks correct, download or email it to yourself.
+  2. You still need to deliver it to the ${courts[0]}. You may be able to get help with delivery if you call the court's emergency help line.
+
+
+  Court's emergency help line:    
+  833-91-COURT (833-912-6878)  
+  Monday-Friday  
+  8:30am - 4:30pm
+  
+  ${ final_form }
+attachment code: notice_of_limited_appearance
