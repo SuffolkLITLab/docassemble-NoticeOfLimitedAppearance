@@ -27,8 +27,8 @@ code: |
   #form_to_file_no_cover = notice_of_limited_appearance
   final_form = notice_of_limited_appearance
 ---
-objects: 
-  - clients: PeopleList
+objects:  
+  - clients: PeopleList.using(auto_gather=False)
 ---
 id: interview order
 mandatory: True
@@ -37,9 +37,10 @@ code: |
   basic_questions_intro_screen
   ask_court_question
   #docket_number_question 
-  docket_numbers[0]
-  other_parties[0].name.first
-  other_parties[1].name.first
+  docket_numbers.there_are_any = True
+  docket_numbers.gather() 
+  plaintiff_name
+  defendant_name
   users[0].name.first
   user_needs_interpreter
   represented_party
@@ -56,7 +57,6 @@ code: |
     set_empty_trial_details
   if not need_others:
     set_empty_others_details
-  notice_to_all_other_parties
   firm_agency_name
   bbo_number
   users[0].address.address
@@ -71,12 +71,12 @@ code: |
   preview_screen
   agrees_to_certify
   users[0].signature
-  attorney_signature_date
+  attorney_signature_date = today().format("MM-dd-yyyy")
   signature_fields = [] 
   for client in clients:
     signature_fields.append(client.instanceName + '.signature')
   basic_questions_signature_flow
-  signature_date
+  signature_date = today().format("MM-dd-yyyy") 
   #notice_of_limited_appearance.docx = True 
   download
 ---
@@ -178,21 +178,25 @@ continue button field: ask_court_question
 id: docket number
 #continue button field: docket_number_question
 question: |
-  What is the docket number for your case?
+  What is the docket number for this case?
+subquestion: |
+  If there are multiple docket numbers on this form, you can click "${word("Add another")}"
+  to add more than one.
+list collect: True
 fields:
-  - Docket Number: docket_numbers[0]
+  - no label: docket_numbers[i]
     required: True
 ---
 id: parties question
 question: |
   Who are the parties in this case?
 fields:
-  - Name of Plaintiff/Petitoner: other_parties[0].name.first
+  - Name of Plaintiff/Petitoner: plaintiff_name
     required: True
-  - Name of Defendant/Respondent: other_parties[1].name.first
+  - Name of Defendant/Respondent: defendant_name
     required: True
 ---
-id: Attorney name
+id: attorney name
 question:  |
   What is your name?
 fields:
@@ -234,14 +238,14 @@ fields:
       - Plaintiff/Petitioner: Plaintiff
       - Defendant/Respondent: Defendant
 ---
-id: client name
-question: |
-  What is your client's name?
-fields:
-  - First name: clients[i].name.first
-  - Middle name: clients[i].name.middle
-    required: False
-  - Last name: clients[i].name.last
+code: |
+  clients.clear() 
+  clients.appendObject()
+  if represented_party == "Plaintiff":  
+    clients[0].name.first = plaintiff_name 
+  else: 
+    clients[0].name.first = defendant_name
+  clients.gathered = True
 ---
 code: |
   clients.there_is_another = False
@@ -320,13 +324,6 @@ validation code: |
       (not showifdef('need_trial_details')) and \
       (not showifdef('need_others_details'))):
     validation_error(word("You need to state at least one event/issue."))
----
-id: notice to all other parties
-question: |
-  Notice to all other parties
-subquestion: |
-  For all matters listed above, both the LAR Attorney and the Party must be served. See Trial Court Rule XVI.
-field: notice_to_all_other_parties
 ---
 id: attorney certification
 question: |
