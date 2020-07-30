@@ -215,17 +215,16 @@ question: |
 subquestion: |
   Your client has the right to an interpreter. 
   
-  If they are not 100% confident about speaking English, ask for an interpreter. 
-  If there is any chance:
-  - They may not understand everything that is said in English. Or
-  - Other people in the hearing will not be able to understand them.
+  If they are not 100% confident about speaking English ask for an interpreter. 
   
-  Then ask.
-  They do not have to speak only through the interpeter, but they will have one if they   need one.
+  If there is a chance they may not understand everything that is said in English, or
+  other people may not be able to understand them, then ask.
+  
+  They do not have to speak only through the interpeter, but they may have one if they   need one.
 fields:
-  - I want an interpreter: user_needs_interpreter
+  - Is an interpreter required?: user_needs_interpreter
     datatype: yesnoradio
-  - My preferred language is: user_preferred_language 
+  - Preferred language: user_preferred_language 
     show if: user_needs_interpreter
 ---
 id: representation question
@@ -256,9 +255,9 @@ code: |
 ---
 id: events or issues
 question: |
-  List of event(s) or issue(s) requiring representation
+  What court event(s) or issue(s) are you representing your client in?
 subquestion: |
-  The Attorney and the Client have both signed a written agreement for the Attorney to represent the Party on a limited basis in the following court event(s) or discrete issue(s) as described below (list event date where applicable).
+  You and your Client have both signed a written agreement for you to represent your client on a limited basis in the following court event(s) or discrete issue(s) as described below (list event date where applicable).
 fields:
   - Motion: need_motion
     datatype: yesno
@@ -314,8 +313,6 @@ fields:
     datatype: date
     required: False
     show if: need_others
-  - note: |
-      Notice to all other parties: For all matters listed above, both the LAR Attorney and the Party must be served. See Trial Court Rule XVI.
 validation code: |
   if (not showifdef('need_motion') and \
       (not showifdef('need_hearing')) and \
