@@ -24,10 +24,11 @@ code: |
 ---  
 code: |       
   #final_form_to_file = notice_of_limited_appearance
-  form_to_file_no_cover = notice_of_limited_appearance
+  #form_to_file_no_cover = notice_of_limited_appearance
+  final_form = notice_of_limited_appearance
 ---
-objects: 
-  - clients: PeopleList
+objects:  
+  - clients: PeopleList.using(auto_gather=False)
 ---
 id: interview order
 mandatory: True
@@ -36,14 +37,14 @@ code: |
   basic_questions_intro_screen
   ask_court_question
   #docket_number_question 
-  docket_numbers[0]
-  other_parties[0].name.first
-  other_parties[1].name.first
+  docket_numbers.there_are_any = True
+  docket_numbers.gather() 
+  plaintiff_name
+  defendant_name
   users[0].name.first
   user_needs_interpreter
   represented_party
   clients.gather()
-  information_on_events_or_issues_with_representation
   if not need_motion:
     set_empty_motion_details
   if not need_hearing:
@@ -56,7 +57,6 @@ code: |
     set_empty_trial_details
   if not need_others:
     set_empty_others_details
-  notice_to_all_other_parties
   firm_agency_name
   bbo_number
   users[0].address.address
@@ -68,16 +68,15 @@ code: |
   users[0].phone_number
   users[0].fax
   users[0].email
-  users[0].other_contact_method
   preview_screen
   agrees_to_certify
   users[0].signature
-  attorney_signature_date
+  attorney_signature_date = today().format("MM-dd-yyyy")
   signature_fields = [] 
   for client in clients:
     signature_fields.append(client.instanceName + '.signature')
   basic_questions_signature_flow
-  signature_date
+  signature_date = today().format("MM-dd-yyyy") 
   #notice_of_limited_appearance.docx = True 
   download
 ---
@@ -129,59 +128,27 @@ code: |
   
   set_empty_others_details = True
 ---
-# Temporarily disable
-if: |
-  False # preferred_court == 'Housing Court'
-id: court information
-sets:
-  - courts[0].name
-question: |
-  What court is the case being heard in?
-subquestion: |
-  Your case can be heard in one of these courts: ${comma_and_list(allowed_courts)}.
-  
-  % if preferred_court and found_housing_court:
-  We have tried to select the court your case is most likely to be in
-  below, based on the address you gave us.
-  
-  We think you are most likely to file in ${local_housing_court}, which
-  is at ${local_housing_court.address.on_one_line(include_unit=True)}
-  
-  ${map_of(local_housing_court.address)}
-  % else:
-  You can try finding your local court by using the [Courthouse Locator](https://www.mass.gov/guides/find-a-courthouse-serving-you). 
-  % endif
-fields:
-  - Court name: courts[0]
-    datatype: object
-    choices: macourts.filter_courts(allowed_courts)
-    default: local_housing_court
-continue button field: ask_court_question    
-#help: |
-#  % if local_housing_court:
-#  ${quote_paragraphs(local_housing_court.description)}
-#  % endif
----
 id: basic questions intro screen
 question: |
-  Ask the Court for Notice of Limited Appearance: MassAccess Project
+  Ask the Court for Notice of Limited Apearance: Mass Access Project
 subquestion: |
-  This website can help you complete and download your forms in 3 steps:
-
-  Step 1. Answer questions that will fill in your forms for you.  
-  Step 2. Preview the completed forms.  
-  Step 3. Email the forms to yourself or download them so you can send the forms to the court or keep them as part of your safety plan.
-
-  Tap the {green words} in any screen for a definition or more information.
-
+ 
+  This website can help you complete and file court forms in 3 steps:
+  
+  Step 1. Answer questions to prefill your forms.  
+  Step 2. Review the completed forms.  
+  Step 3. Email the forms to the court using this secure website and save copies
+  for yourself for later reference.  
+  
+  If you have questions about this form or the court process, 
+  call the Trial Court’s Emergency HelpLine:  
+  833-91-COURT (833-912-6878)  
+  Monday-Friday  
+  8:30am - 4:30pm
   % if chat_partners_available().help:
-
   Live help is currently available in this interview. Click the speech bubble
-
   (:comment-alt:) in the navigation bar to connect to a live advocate for help.
-
   % endif
-
 fields:
   - To continue, please read the [terms of use](https://massaccess.suffolklitlab.org/privacy/): acknowledged_information_use
     datatype: checkboxes
@@ -193,42 +160,43 @@ fields:
       minlength: |
         You cannot continue unless you agree to the terms of use.        
 continue button field: basic_questions_intro_screen
-terms:
-  green words: |
-    Green words are legal terms or a short way of referring to something that needs more explanation. The definition or explanation pops up when you tap the green words.
-right: |
-  % if user_has_saved_answers:
-
-  ${fa_icon("bell", color="primary", size="sm")}
-
-  Saved answers available!  
-
-  ${action_button_html(url_action('load_answer'), icon="folder-open", label=word("View answers"), size="sm" )}
-
-  % endif    
+---
+id: court question
+question: |
+  What court is the case being heard in?
+subquestion: |
+  The case can be heard in these courts: ${comma_and_list(allowed_courts)}.
+  The local court can be found by using the [Courthouse Locator](https://www.mass.gov/guides/find-a-courthouse-serving-you).
+fields:
+  - Court name: courts[0]
+    datatype: object
+    choices: macourts.filter_courts(allowed_courts)
+continue button field: ask_court_question
 ---
 id: docket number
 #continue button field: docket_number_question
 question: |
-  What is the docket number for your case?
+  What is the docket number for this case?
+subquestion: |
+  If there are multiple docket numbers on this form, you can click "${word("Add another")}"
+  to add more than one.
+list collect: True
 fields:
-  - Docket Number: docket_numbers[0]
-    required: False
+  - no label: docket_numbers[i]
+    required: True
 ---
 id: parties question
 question: |
   Who are the parties in this case?
-subquestion: |
-  Please be specific.
 fields:
-  - Name of Plaintiff/Petitoner: other_parties[0].name.first
+  - Name of Plaintiff/Petitoner: plaintiff_name
     required: True
-  - Name of Defendant/Respondent: other_parties[1].name.first
+  - Name of Defendant/Respondent: defendant_name
     required: True
 ---
-id: Attorney name
+id: attorney name
 question:  |
-  Name of Attorney
+  What is your name?
 fields:
   - First Name: users[0].name.first
   - Middle Name: users[0].name.middle
@@ -239,24 +207,22 @@ fields:
       name_suffix()
     required: False 
 ---
+id: interpreter question
 question: |
-  Preferred language
+  Does your client need an interpreter?
 subquestion: |
   Your client has the right to an interpreter. 
   
-  If they are not 100% confident about speaking English, ask for an interpreter. 
-  If there is any chance:
-
-  - They may not understand everything that is said in English. Or
-  - Other people in the hearing will not be able to understand them.
+  If they are not 100% confident about speaking English ask for an interpreter. 
   
-  Then ask.
-
-  They do not have to speak only through the interpeter, but they will have one if they   need one.
+  If there is a chance they may not understand everything that is said in English, or
+  other people may not be able to understand them, then ask.
+  
+  They do not have to speak only through the interpeter, but they may have one if they   need one.
 fields:
-  - I want an interpreter: user_needs_interpreter
+  - Is an interpreter required?: user_needs_interpreter
     datatype: yesnoradio
-  - My preferred language is: user_preferred_language 
+  - Preferred language: user_preferred_language 
     show if: user_needs_interpreter
 ---
 id: representation question
@@ -269,14 +235,14 @@ fields:
       - Plaintiff/Petitioner: Plaintiff
       - Defendant/Respondent: Defendant
 ---
-id: client name
-question: |
-  What is your client's name?
-fields:
-  - First name: clients[i].name.first
-  - Middle name: clients[i].name.middle
-    required: False
-  - Last name: clients[i].name.last
+code: |
+  clients.clear() 
+  clients.appendObject()
+  if represented_party == "Plaintiff":  
+    clients[0].name.first = plaintiff_name 
+  else: 
+    clients[0].name.first = defendant_name
+  clients.gathered = True
 ---
 code: |
   clients.there_is_another = False
@@ -285,16 +251,11 @@ code: |
 code: |
   clients.there_are_any = True
 ---
-id: information on events or issues
-question: |
-  List of event(s) or issue(s) requiring representation
-subquestion: |
-  By clicking 'Next' the Attorney and the Client confirm they have signed a written       agreement for the Attorney to represent the Client on a limited basis in the           following   court event(s) or discrete issue(s). List event date where applicable. 
-field: information_on_events_or_issues_with_representation
----
 id: events or issues
 question: |
-  In what event(s) or discrete issue(s) will you be providing representation?
+  What court event(s) or issue(s) are you representing your client in?
+subquestion: |
+  You and your Client have both signed a written agreement for you to represent your client on a limited basis in the following court event(s) or discrete issue(s) as described below (list event date where applicable).
 fields:
   - Motion: need_motion
     datatype: yesno
@@ -359,13 +320,6 @@ validation code: |
       (not showifdef('need_others_details'))):
     validation_error(word("You need to state at least one event/issue."))
 ---
-id: notice to all other parties
-question: |
-  Notice to all other parties
-subquestion: |
-  For all matters listed above, both the LAR Attorney and the Party must be served. See Trial Court Rule XVI.
-field: notice_to_all_other_parties
----
 id: attorney certification
 question: |
   Attorney Certification Notice
@@ -386,15 +340,16 @@ fields:
 need: agrees_to_tos
 question: All done
 ---
-id: contact information
+id: address and fax number
 question: |
-  Attorney contact information (address)
+  Address and Fax Number
 fields:
   - Firm or Agency Name (if applicable): firm_agency_name
     required: False
   - B.B.O. Number: bbo_number
   - Street Address: users[0].address.address
   - Apt/Unit Number: users[0].address.unit
+    required: False
   - City: users[0].address.city
   - State: users[0].address.state
     code: |
@@ -402,10 +357,11 @@ fields:
     default: MA      
   - Zip: users[0].address.zip
   - Fax Number: users[0].fax
+    required: False
 ---
-id: contact information (number/email)
+id: phone number and email
 question: |
-  Attorney contact information (number/email)
+  Phone Number and Email
 subquestion: |
   The court needs to be able to reach you to schedule your hearing.
   
@@ -416,25 +372,11 @@ fields:
     required: False
   - Email address: users[0].email    
     datatype: email
-  - Other ways to reach you: users[0].other_contact_method
-    input type: area
-    required: False
-    help: |
-      If you do not have a phone number or email the court can use, provide
-      specific contact instructions. For example, use a friend's phone number.
-      But the friend must be someone you can rely on to tell you the court is
-      trying to reach you.
 validation code: |
   if (not showifdef('users[0].home_number') and \
       (not showifdef('users[0].mobile_number')) and \
-      (not showifdef('users[0].email')) and \
-      (not showifdef('users[0].other_contact_method'))):
-    validation_error(word("You need to provide at least one contact method."))
-help: |
-  The court **must** be able to reach you. So you have to give them some way to do this.
-  
-  Some forms allow you to tell the court you need to keep your address, phone,
-  and email confidential, so that only court staff can see this information.      
+      (not showifdef('users[0].email'))): 
+    validation_error(word("You need to provide at least one contact method."))     
 ---
 id: preview screen
 question: |
@@ -446,14 +388,13 @@ subquestion: |
   to fix the mistakes.
   
   ${ form_to_sign }
-
 continue button field: preview_screen
 ---
 code: |
  form_to_sign = pdf_concatenate(preview_doc)
 ---
 code: |
-  download_titles = ["notice_of_limited_appearance"]
+  #download_titles = ["notice_of_limited_appearance"]
 ---
 attachment:
   docx template file: notice_of_limited_appearance.docx
@@ -497,61 +438,62 @@ subquestion: |
    
 progress: 95
 ---
-id: download form
-event: download
-comment: |
-  The attachment email screen relies on final_form_to_file being defined. This
-  will be built from the interview_metadata dictionary's contents, but if you
-  add any addenda you will want to set this in a code block somewhere that takes
-  priority over basic-questions.yml.
-decoration: file-download
-question: |
-  % if not defined('email_success') or not email_success:
-  Review, Download, and Send Form
-  % else:
-  Form delivered
-  % endif
-subquestion: |
-  % if not defined('email_success') or not email_success:
-  Thank you ${users[0]}. Your form is ready to send to the court. **It is not
-  delivered until you complete the delivery process below.**
-  1. Click the preview image below to open the form in a new window. Correct any errors using the "Make changes" button below.
-  1. Download and save or print a copy of this form for your 
-  records.
-  1. Click the "Submit to ${courts[0]}" button to send it to the court. 
-  1. You will have a chance to add instructions to the clerk and see the cover page before final delivery.
-  % else:
-  If you do not hear from the court in 1 business day, call the Trial Court's
-  Emergency HelpLine 833-91-COURT (833-912-6878).
-  The Emergency HelpLine is open:  
-  8:30am - 4:30pm,   
-  Monday - Friday.
-  % endif
-  ${ form_to_file_no_cover }  
-  
-  ${action_button_html(url_action('review_all_sections'), icon='edit', label=word("Make changes"))}
-  
-  % if not defined('email_success') or not email_success:
-    ${ action_button_html( url_action('form_delivery_complete'), id_tag="submitToCourt", label="Submit to " + str(courts[0].name), icon=send_icon, size="md", color="primary")}
-    
-  Or download/email below:
-  % else:
-    Your email has already been delivered to ${courts[0]}
-    
-  [:file-download: Download with cover page](${final_form_to_file.url_for()})    
-  % endif
-progress: 100
-attachment code: notice_of_limited_appearance
-section: download
+#id: download form
+#event: download
+#comment: |
+#  The attachment email screen relies on final_form_to_file being defined. This
+#  will be built from the interview_metadata dictionary's contents, but if you
+#  add any addenda you will want to set this in a code block somewhere that takes
+#  priority over basic-questions.yml.
+#decoration: file-download
+#question: |
+#  % if not defined('email_success') or not email_success:
+#  Review, Download, and Send Form
+#  % else:
+#  Form delivered
+#  % endif
+#subquestion: |
+#  % if not defined('email_success') or not email_success:
+#  Thank you ${users[0]}. Your form is ready to send to the court. **It is not
+#  delivered until you complete the delivery process below.**
+#  1. Click the preview image below to open the form in a new window. Correct any errors using the "Make changes" button below.
+#  1. Download and save or print a copy of this form for your 
+#  records.
+#  1. Click the "Submit to ${courts[0]}" button to send it to the court. 
+#  1. You will have a chance to add instructions to the clerk and see the cover page before final delivery.
+#  % else:
+#  If you do not hear from the court in 1 business day, call the Trial Court's
+#  Emergency HelpLine 833-91-COURT (833-912-6878).
+#  The Emergency HelpLine is open:  
+#  8:30am - 4:30pm,   
+#  Monday - Friday.
+#  % endif
+#  ${ form_to_file_no_cover }  
+#  
+#  ${action_button_html(url_action('review_all_sections'), icon='edit', label=word("Make changes"))}
+#  
+#  % if not defined('email_success') or not email_success:
+#    ${ action_button_html( url_action('form_delivery_complete'), id_tag="submitToCourt", label="Submit to " + str(courts[0].name), icon=send_icon, size="md", color="primary")}
+#    
+#  Or download/email below:
+#  % else:
+#    Your email has already been delivered to ${courts[0]}
+#    
+#  [:file-download: Download with cover page](${final_form_to_file.url_for()})    
+#  % endif
+#progress: 100
+#attachment code: notice_of_limited_appearance
+#section: download
 ---
 id: signature of Attorney
 question: |
-  Attorney Signature
+  This form requires your signature and the signature of your client.
 subquestion: | 
-  This form must be signed by both Attorney and by the Party who is receiving representation. Attorney can sign below using the mouse or touchpad on the computer.
+  You can sign below using the mouse or touchpad of your computer. By clicking "Next" you will be able to continue the interview and text your client a link to sign this form.
 signature: users[0].signature
 under: |
-  Attorney
+  ${users[0]}
+progress: 99
 ---
 id: date of signature by Attorney
 question: |
@@ -564,24 +506,129 @@ fields:
 id: signature choice
 decoration: file-signature
 question: |
-  This form requires the signature of both Attorney and Client.
+  We are almost ready to file your form. Your client will need to sign it first.
 subquestion: |
-  We are almost ready to file your forms. The represented Client will need to sign them first.
-   
-   
-  Attorney can send the form to the client to sign if you choose the "phone" option.
+  You can send this form to your client to sign if you choose the "phone" option.
 field: signature_choice
 buttons:  
-  - Sign on my phone: phone
+  - Sign on a phone: phone
     image: mobile-alt
-  - Sign on this computer: this device
-    image: desktop
 continue button field: saw_signature_choice
 script: |
   <script>
     $(".da-field-buttons > div > .btn-da-custom").last().after("<br>")
     $(".da-field-buttons > div > .btn-da-custom").first().before("<br>")
   </script>
+---
+comment: |
+  This block is shown when the user texts a link to sign a form
+id: signature wait screen
+#question: |
+#  % if defined('tenant.signature'):
+#  Thank you for signing.
+#  % else:
+#  Sign on your phone
+#  % endif
+question: |
+  % if device().is_pc:
+  % if defined('tenant.signature'):
+  Click ${word("next")}.
+  % else:
+  Click ${word("next")} on this screen once your client has finished signing on their phone.
+  % endif
+  % else:
+  You have been asked to sign this PDF. Click to review it.    
+  ${form_to_sign}  
+  [Make changes](${url_action('review_all_sections')})
+  Click ${word("next")} on this screen when you're ready to sign.
+  % endif  
+field: signature_wait_screen
+decoration: file-signature
+---
+id: signature-phone
+question: |
+  Text your client a link to sign this form
+fields:
+  - note: |
+    Text a link: text_link
+    datatype: yesnowide
+    show if: 
+      code: |
+        device().is_pc
+  - label: Cell phone number
+    field: link_cell
+    show if: text_link
+    default: ${showifdef('users[0].phone_number')}
+  - note: |
+      Click ${word("next")} to add your signature.
+    show if: 
+      code: |
+        not device().is_pc
+help: |
+  Many smartphones will automatically find the link on this screen when you use
+  the camera app. The link
+  may "float" up from the screen into a small icon you can click.
+  If your phone does not do this, use the text option instead.
+continue button field: saw_signature_qrcode
+---
+id: signature phone followup
+question: |
+  Thank you for signing. You can now close this browser on your phone.  
+field: signature_phone_followup  
+---
+template: interview_link
+content: |
+  Hi, ${ users[0] }  sent you a form from MassAccess. To sign the form,
+  click the link below:  
+  ${interview_url()}
+---
+code: |
+  started_on_phone = device().is_mobile
+---
+# Triggers some questions to ask for signatures on either desktop or mobile
+# Allows sending via text/email
+id: basic questions signature flow control
+code: |
+  if not defined('signature_fields'):
+    # Not a perfect default, but typically only the user needs to sign
+    # Make sure signature_fields is defined in a mandatory block
+    signature_fields = ['users[0].signature']
+  if started_on_phone:
+    saw_signature_choice = True
+    for signature in signature_fields:
+      value(signature)
+    # Add in logic for when we need additional signatures
+  else: 
+    # Three branches:
+    # 1. Decided to sign on the PC
+    # 2. Sent someone a link to sign the form
+    # 3. Used the QR code
+    saw_signature_choice
+    # Branch 1: PC
+    if signature_choice =='this device':
+      for signature in signature_fields:
+        value(signature)    
+    # Check for Branch 2 or 3
+    elif signature_choice == 'phone':
+      saw_signature_qrcode
+      # User will click next. link_cell will only be defined if they chose the texting option
+      if defined('link_cell') and link_cell and task_not_yet_performed('send signature link'): 
+        # They used the text option
+        send_sms(task='send signature link', to=link_cell,template=interview_link)
+        signature_wait_screen
+        for signature in signature_fields:
+          value(signature)
+      else: # Branch 3: They used the QR Code. No special screen, just continue
+        for signature in signature_fields:
+          value(signature)
+      # Show the follow-up either way
+      if device().is_mobile:
+        #signed = False
+        #while not signed:
+        #  for signature in signature_fields:
+        #    signed = defined(signature) & signed
+        signature_phone_followup
+  basic_questions_signature_flow = True
 ---
 id: date of signature by client
 question: |
@@ -590,22 +637,21 @@ fields:
   - Date: signature_date
     datatype: date
     default: ${today().format("yyyy-MM-dd")}
-#---
-#event: download
-#question: |
-#  Your form is ready
-#subquestion: |
-#  Look over the form below.
-#  
-#  1. If it looks correct, download or email it to yourself.
-#  2. You still need to deliver it to the ${courts[0]}. You may be able to get help with delivery if you call
-#  the court's emergency help line.
-#
-#
-#  Court's emergency help line:    
-#  833-91-COURT (833-912-6878)  
-#  Monday-Friday  
-#  8:30am - 4:30pm
-#  
-#  ${ final_form }
-#attachment code: notice_of_limited_appearance
+---
+id: download final form
+event: download
+question: |
+  Your form is ready
+subquestion: |
+  Look over the form below.
+  
+  1. If it looks correct, download or email it to yourself.
+  2. You still need to deliver it to the ${courts[0]}. You may be able to get help with delivery if you call
+  the court's emergency help line.
+  Court's emergency help line:    
+  833-91-COURT (833-912-6878)  
+  Monday-Friday  
+  8:30am - 4:30pm
+  
+  ${ final_form }
+attachment code: notice_of_limited_appearance
