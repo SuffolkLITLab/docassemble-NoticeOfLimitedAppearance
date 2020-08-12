@@ -575,25 +575,35 @@ content: |
 code: |
   started_on_phone = device().is_mobile
 ---
-comment: |
-  User signs 
-  
-  is the client available to sign
-    if yes 
-      want user to be to send link to client to sign 
-    if no
-      want to skip client signature flow 
-  ### client is ready 
-  show user screen with phone number to send (link in addition)
-  text is sent 
-  wait while the client signs screen (try hitting next when client hasnt signed). 
-  client signs 
-  final review 
-  download 
-  ### client experience
-  client gets text 
-  client signs 
-  client gets downloadable form
+code: |
+  #User signs 
+  users[0].signature
+  #is the client available to sign
+  if client_present:
+    #want user to be to send link to client to sign
+    link_cell
+    send_sms(task='send signature link', to=link_cell,template=interview_link)
+    signature_wait_screen
+    # TODO & BUG: what if client accepts the text on their computer?
+    if device().is_mobile:
+      clients[0].signature
+      signature_date = today().format("MM-dd-yyyy")
+  else:
+    clients[0].signature = ""
+    signature_date = ""
+    
+  #    want to skip client signature flow 
+  #### client is ready 
+  #show user screen with phone number to send (link in addition)
+  #text is sent 
+  #wait while the client signs screen (try hitting next when client hasnt signed). 
+  #client signs 
+  #final review 
+  #download 
+  #### client experience
+  #client gets text 
+  #client signs 
+  #client gets downloadable form
 ---
 # Triggers some questions to ask for signatures on either desktop or mobile
 # Allows sending via text/email
@@ -603,14 +613,6 @@ code: |
     # Not a perfect default, but typically only the user needs to sign
     # Make sure signature_fields is defined in a mandatory block
     signature_fields = ['users[0].signature']
-  
-  is the client available to sign
-    if yes 
-      want user to be to send link to client to sign 
-    if no
-      want to skip client signature flow 
-  ### client signature flow 
-  
   ### old code
   if started_on_phone:
     saw_signature_choice = True
