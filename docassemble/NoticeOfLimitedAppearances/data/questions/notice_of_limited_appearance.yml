@@ -35,6 +35,7 @@ mandatory: True
 code: |
   interview_presets
   basic_questions_intro_screen
+  client_present
   ask_court_question
   #docket_number_question 
   docket_numbers.there_are_any = True
@@ -72,14 +73,25 @@ code: |
   agrees_to_certify
   users[0].signature
   attorney_signature_date = today().format("MM-dd-yyyy")
-  signature_fields = [] 
-  for client in clients:
-    signature_fields.append(client.instanceName + '.signature')
-  basic_questions_signature_flow
-  signature_date = today().format("MM-dd-yyyy") 
+  signature_fields = []
+  if not client_present: 
+    set_client_signature
+  else: 
+    for client in clients:
+      signature_fields.append(client.instanceName + '.signature')
+    signature_date = today().format("MM-dd-yyyy")
+    basic_questions_signature_flow
   #notice_of_limited_appearance.docx = True 
   download
 ---
+sets: set_client_signature
+scan for variables: False
+code: |
+  signature_fields = ""
+  signature_date = ""
+  
+  set_client_signature = True
+--- 
 sets: set_empty_motion_details
 scan for variables: False
 code: |
@@ -128,38 +140,17 @@ code: |
   
   set_empty_others_details = True
 ---
-id: basic questions intro screen
+code: |
+  interview_short_title = "Ask the court for a Notice of Limited Appearance"
+---
+id: form description
 question: |
-  Ask the Court for Notice of Limited Apearance: Mass Access Project
+  Notice of Limited Appearance
 subquestion: |
- 
-  This website can help you complete and file court forms in 3 steps:
+  You will be asked to send a link to your client at the end of this interview for them to sign the final form.
   
-  Step 1. Answer questions to prefill your forms.  
-  Step 2. Review the completed forms.  
-  Step 3. Email the forms to the court using this secure website and save copies
-  for yourself for later reference.  
-  
-  If you have questions about this form or the court process, 
-  call the Trial Court’s Emergency HelpLine:  
-  833-91-COURT (833-912-6878)  
-  Monday-Friday  
-  8:30am - 4:30pm
-  % if chat_partners_available().help:
-  Live help is currently available in this interview. Click the speech bubble
-  (:comment-alt:) in the navigation bar to connect to a live advocate for help.
-  % endif
-fields:
-  - To continue, please read the [terms of use](https://massaccess.suffolklitlab.org/privacy/): acknowledged_information_use
-    datatype: checkboxes
-    none of the above: False    
-    minlength: 1
-    choices:
-      - I accept the terms of use.
-    validation messages:
-      minlength: |
-        You cannot continue unless you agree to the terms of use.        
-continue button field: basic_questions_intro_screen
+  Is your client available to sign this form? 
+yesno: client_present
 ---
 id: court question
 question: |
@@ -213,12 +204,11 @@ question: |
 subquestion: |
   Your client has the right to an interpreter. 
   
-  If they are not 100% confident about speaking English ask for an interpreter. 
+  If they are not 100% confident about speaking English, ask for an interpreter. 
   
-  If there is a chance they may not understand everything that is said in English, or
-  other people may not be able to understand them, then ask.
+  If there is a chance they may not understand everything that is said in English, or other people may not be able to understand them, ask for an interpreter.
   
-  They do not have to speak only through the interpeter, but they may have one if they   need one.
+  They do not have to speak only through the interpeter, but they may have one if they need one.
 fields:
   - Is an interpreter required?: user_needs_interpreter
     datatype: yesnoradio
@@ -585,6 +575,26 @@ content: |
 code: |
   started_on_phone = device().is_mobile
 ---
+comment: |
+  User signs 
+  
+  is the client available to sign
+    if yes 
+      want user to be to send link to client to sign 
+    if no
+      want to skip client signature flow 
+  ### client is ready 
+  show user screen with phone number to send (link in addition)
+  text is sent 
+  wait while the client signs screen (try hitting next when client hasnt signed). 
+  client signs 
+  final review 
+  download 
+  ### client experience
+  client gets text 
+  client signs 
+  client gets downloadable form
+---
 # Triggers some questions to ask for signatures on either desktop or mobile
 # Allows sending via text/email
 id: basic questions signature flow control
@@ -593,6 +603,15 @@ code: |
     # Not a perfect default, but typically only the user needs to sign
     # Make sure signature_fields is defined in a mandatory block
     signature_fields = ['users[0].signature']
+  
+  is the client available to sign
+    if yes 
+      want user to be to send link to client to sign 
+    if no
+      want to skip client signature flow 
+  ### client signature flow 
+  
+  ### old code
   if started_on_phone:
     saw_signature_choice = True
     for signature in signature_fields:
