@@ -481,15 +481,8 @@ id: signature-phone
 question: |
   Text your client a link to sign this form
 fields:
-  - note: |
-    Text a link: text_link
-    datatype: yesnowide
-    show if: 
-      code: |
-        device().is_pc
   - label: Cell phone number
     field: link_cell
-    show if: text_link
   - note: |
       Click ${word("next")} to add your signature.
     show if: 
