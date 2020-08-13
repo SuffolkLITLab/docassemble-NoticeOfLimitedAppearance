@@ -40,12 +40,12 @@ code: |
   #docket_number_question 
   docket_numbers.there_are_any = True
   docket_numbers.gather() 
+  users[0].name.first
   plaintiff_name
   defendant_name
-  users[0].name.first
-  user_needs_interpreter
   represented_party
   clients.gather()
+  user_needs_interpreter
   if not need_motion:
     set_empty_motion_details
   if not need_hearing:
@@ -71,17 +71,18 @@ code: |
   users[0].email
   preview_screen
   agrees_to_certify
-  users[0].signature
-  attorney_signature_date = today().format("MM-dd-yyyy")
-  signature_fields = []
-  if not client_present: 
-    set_client_signature
-  else: 
-    for client in clients:
-      signature_fields.append(client.instanceName + '.signature')
-    signature_date = today().format("MM-dd-yyyy")
-    basic_questions_signature_flow
-  #notice_of_limited_appearance.docx = True 
+  basic_questions_signature_flow
+  #users[0].signature
+  #attorney_signature_date = today().format("MM-dd-yyyy")
+  #signature_fields = []
+  #if not client_present: 
+  #  set_client_signature
+  #else: 
+  #  for client in clients:
+  #    signature_fields.append(client.instanceName + '.signature')
+  #  signature_date = today().format("MM-dd-yyyy")
+  #  #basic_questions_signature_flow
+  ##notice_of_limited_appearance.docx = True 
   download
 ---
 sets: set_client_signature
@@ -219,7 +220,7 @@ id: representation question
 question: |
   Which party are you representing?
 fields: 
-  - Answer: represented_party
+  - no label: represented_party
     input type: radio
     choices:
       - Plaintiff/Petitioner: Plaintiff
@@ -312,7 +313,7 @@ validation code: |
 ---
 id: attorney certification
 question: |
-  Attorney Certification Notice
+  Attorney certification notice
 subquestion: |
   I certify that I have completed an approved LAR information session as required, and   that I have signed a written agreement with the Client above to provide the limited     representation in this matter as described above. 
   
@@ -330,9 +331,9 @@ fields:
 need: agrees_to_tos
 question: All done
 ---
-id: address and fax number
+id: user address
 question: |
-  Address and Fax Number
+  Your contact information
 fields:
   - Firm or Agency Name (if applicable): firm_agency_name
     required: False
@@ -346,22 +347,22 @@ fields:
       states_list()
     default: MA      
   - Zip: users[0].address.zip
-  - Fax Number: users[0].fax
-    required: False
 ---
-id: phone number and email
+id: user contact information
 question: |
-  Phone Number and Email
+  Your contact information
 subquestion: |
   The court needs to be able to reach you to schedule your hearing.
   
   Include at least **one** way to reach you other than by mail.
 fields:  
-  - Office or Home Phone number: users[0].phone_number
+  - Office or home phone number: users[0].phone_number
   - Mobile number: users[0].mobile_number
     required: False
   - Email address: users[0].email    
     datatype: email
+  - Fax number: users[0].fax
+    required: False
 validation code: |
   if (not showifdef('users[0].home_number') and \
       (not showifdef('users[0].mobile_number')) and \
@@ -399,7 +400,7 @@ attachment:
 ---
 event: review_all_sections
 question: |
-  Review of your answers
+  Review your answers
 subquestion: |
   ${showifdef('form_to_sign')}
   % if defined('form_delivery_complete'):
@@ -422,6 +423,7 @@ question: |
   Nearly finished
 subquestion: |
   You are almost done! Please click on the form below. It will open in a new window so you can review it and make sure it is correct.
+  
   Don't forget to come back to this page to click to the final step of signing and sending the form to the court. 
    
    ${ form_to_sign }
@@ -475,7 +477,7 @@ progress: 95
 #attachment code: notice_of_limited_appearance
 #section: download
 ---
-id: signature of Attorney
+id: attorney signature
 question: |
   This form requires your signature and the signature of your client.
 subquestion: | 
@@ -485,7 +487,7 @@ under: |
   ${users[0]}
 progress: 99
 ---
-id: date of signature by Attorney
+id: date of attorney signature
 question: |
  Dated:
 fields:
@@ -576,18 +578,23 @@ code: |
   started_on_phone = device().is_mobile
 ---
 code: |
+  send_sms(task='send signature link', to=link_cell,template=interview_link)
+  sms_was_sent = True 
+---
+code: |
   #User signs 
   users[0].signature
   #is the client available to sign
   if client_present:
     #want user to be to send link to client to sign
     link_cell
-    send_sms(task='send signature link', to=link_cell,template=interview_link)
-    signature_wait_screen
+    sms_was_sent
     # TODO & BUG: what if client accepts the text on their computer?
     if device().is_mobile:
       clients[0].signature
       signature_date = today().format("MM-dd-yyyy")
+    else:
+      signature_wait_screen
   else:
     clients[0].signature = ""
     signature_date = ""
@@ -604,54 +611,54 @@ code: |
   #client gets text 
   #client signs 
   #client gets downloadable form
+  basic_questions_signature_flow = True
 ---
 # Triggers some questions to ask for signatures on either desktop or mobile
 # Allows sending via text/email
-id: basic questions signature flow control
-code: |
-  if not defined('signature_fields'):
-    # Not a perfect default, but typically only the user needs to sign
-    # Make sure signature_fields is defined in a mandatory block
-    signature_fields = ['users[0].signature']
-  ### old code
-  if started_on_phone:
-    saw_signature_choice = True
-    for signature in signature_fields:
-      value(signature)
-    # Add in logic for when we need additional signatures
-  else: 
-    # Three branches:
-    # 1. Decided to sign on the PC
-    # 2. Sent someone a link to sign the form
-    # 3. Used the QR code
-    saw_signature_choice
-    # Branch 1: PC
-    if signature_choice =='this device':
-      for signature in signature_fields:
-        value(signature)    
-    # Check for Branch 2 or 3
-    elif signature_choice == 'phone':
-      saw_signature_qrcode
-      # User will click next. link_cell will only be defined if they chose the texting option
-      if defined('link_cell') and link_cell and task_not_yet_performed('send signature link'): 
-        # They used the text option
-        send_sms(task='send signature link', to=link_cell,template=interview_link)
-        signature_wait_screen
-        for signature in signature_fields:
-          value(signature)
-      else: # Branch 3: They used the QR Code. No special screen, just continue
-        for signature in signature_fields:
-          value(signature)
-      # Show the follow-up either way
-      if device().is_mobile:
-        #signed = False
-        #while not signed:
-        #  for signature in signature_fields:
-        #    signed = defined(signature) & signed
-        signature_phone_followup
-  basic_questions_signature_flow = True
+#id: basic questions signature flow control
+#code: |
+#  if not defined('signature_fields'):
+#    # Not a perfect default, but typically only the user needs to sign
+#    # Make sure signature_fields is defined in a mandatory block
+#    signature_fields = ['users[0].signature']
+#  ### old code
+#  if started_on_phone:
+#    saw_signature_choice = True
+#    for signature in signature_fields:
+#      value(signature)
+#    # Add in logic for when we need additional signatures
+#  else: 
+#    # Three branches:
+#    # 1. Decided to sign on the PC
+#    # 2. Sent someone a link to sign the form
+#    # 3. Used the QR code
+#    saw_signature_choice
+#    # Branch 1: PC
+#    if signature_choice =='this device':
+#      for signature in signature_fields:
+#        value(signature)    
+#    # Check for Branch 2 or 3
+#    elif signature_choice == 'phone':
+#      saw_signature_qrcode
+#      # User will click next. link_cell will only be defined if they chose the texting option
+#      if defined('link_cell') and link_cell and task_not_yet_performed('send signature link'): 
+#        # They used the text option
+#        send_sms(task='send signature link', to=link_cell,template=interview_link)
+#        signature_wait_screen
+#        for signature in signature_fields:
+#          value(signature)
+#      else: # Branch 3: They used the QR Code. No special screen, just continue
+#        for signature in signature_fields:
+#          value(signature)
+#      # Show the follow-up either way
+#      if device().is_mobile:
+#        #signed = False
+#        #while not signed:
+#        #  for signature in signature_fields:
+#        #    signed = defined(signature) & signed
+#        signature_phone_followup
 ---
-id: date of signature by client
+id: date of client signature
 question: |
  Dated:
 fields:
