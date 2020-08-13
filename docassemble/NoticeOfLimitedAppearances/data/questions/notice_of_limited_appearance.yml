@@ -35,7 +35,7 @@ mandatory: True
 code: |
   interview_presets
   basic_questions_intro_screen
-  client_present
+  client_can_sign_now
   ask_court_question
   #docket_number_question 
   docket_numbers.there_are_any = True
@@ -71,18 +71,7 @@ code: |
   users[0].email
   preview_screen
   agrees_to_certify
-  basic_questions_signature_flow
-  #users[0].signature
-  #attorney_signature_date = today().format("MM-dd-yyyy")
-  #signature_fields = []
-  #if not client_present: 
-  #  set_client_signature
-  #else: 
-  #  for client in clients:
-  #    signature_fields.append(client.instanceName + '.signature')
-  #  signature_date = today().format("MM-dd-yyyy")
-  #  #basic_questions_signature_flow
-  ##notice_of_limited_appearance.docx = True 
+  signature_flow
   download
 ---
 sets: set_client_signature
@@ -151,7 +140,7 @@ subquestion: |
   You will be asked to send a link to your client at the end of this interview for them to sign the final form.
   
   Is your client available to sign this form? 
-yesno: client_present
+yesno: client_can_sign_now
 ---
 id: court question
 question: |
@@ -582,10 +571,9 @@ code: |
   sms_was_sent = True 
 ---
 code: |
-  #User signs 
   users[0].signature
   #is the client available to sign
-  if client_present:
+  if client_can_sign_now:
     #want user to be to send link to client to sign
     link_cell
     sms_was_sent
@@ -598,65 +586,7 @@ code: |
   else:
     clients[0].signature = ""
     signature_date = ""
-    
-  #    want to skip client signature flow 
-  #### client is ready 
-  #show user screen with phone number to send (link in addition)
-  #text is sent 
-  #wait while the client signs screen (try hitting next when client hasnt signed). 
-  #client signs 
-  #final review 
-  #download 
-  #### client experience
-  #client gets text 
-  #client signs 
-  #client gets downloadable form
-  basic_questions_signature_flow = True
----
-# Triggers some questions to ask for signatures on either desktop or mobile
-# Allows sending via text/email
-#id: basic questions signature flow control
-#code: |
-#  if not defined('signature_fields'):
-#    # Not a perfect default, but typically only the user needs to sign
-#    # Make sure signature_fields is defined in a mandatory block
-#    signature_fields = ['users[0].signature']
-#  ### old code
-#  if started_on_phone:
-#    saw_signature_choice = True
-#    for signature in signature_fields:
-#      value(signature)
-#    # Add in logic for when we need additional signatures
-#  else: 
-#    # Three branches:
-#    # 1. Decided to sign on the PC
-#    # 2. Sent someone a link to sign the form
-#    # 3. Used the QR code
-#    saw_signature_choice
-#    # Branch 1: PC
-#    if signature_choice =='this device':
-#      for signature in signature_fields:
-#        value(signature)    
-#    # Check for Branch 2 or 3
-#    elif signature_choice == 'phone':
-#      saw_signature_qrcode
-#      # User will click next. link_cell will only be defined if they chose the texting option
-#      if defined('link_cell') and link_cell and task_not_yet_performed('send signature link'): 
-#        # They used the text option
-#        send_sms(task='send signature link', to=link_cell,template=interview_link)
-#        signature_wait_screen
-#        for signature in signature_fields:
-#          value(signature)
-#      else: # Branch 3: They used the QR Code. No special screen, just continue
-#        for signature in signature_fields:
-#          value(signature)
-#      # Show the follow-up either way
-#      if device().is_mobile:
-#        #signed = False
-#        #while not signed:
-#        #  for signature in signature_fields:
-#        #    signed = defined(signature) & signed
-#        signature_phone_followup
+  signature_flow = True
 ---
 id: date of client signature
 question: |
