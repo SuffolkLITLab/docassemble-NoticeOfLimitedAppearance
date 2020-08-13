@@ -572,6 +572,7 @@ code: |
 ---
 code: |
   users[0].signature
+  attorney_signature_date
   #is the client available to sign
   if client_can_sign_now:
     #want user to be to send link to client to sign
