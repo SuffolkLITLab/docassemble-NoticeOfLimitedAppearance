@@ -35,6 +35,8 @@ mandatory: True
 code: |
   interview_presets
   basic_questions_intro_screen
+  if not agrees_to_certify:
+    kick_out_no_certification
   client_can_sign_now
   ask_court_question
   #docket_number_question 
@@ -70,70 +72,32 @@ code: |
   users[0].fax
   users[0].email
   preview_screen
-  agrees_to_certify
+  agrees_to_service_certification
   signature_flow
   download
----
-sets: set_client_signature
-scan for variables: False
-code: |
-  signature_fields = ""
-  signature_date = ""
-  
-  set_client_signature = True
---- 
-sets: set_empty_motion_details
-scan for variables: False
-code: |
-  need_motion_details = ""
-  need_motion_date = ""
-  
-  set_empty_motion_details = True
----
-sets: set_empty_hearing_details
-scan for variables: False
-code: |
-  need_hearing_details = ""
-  need_hearing_date = ""
-  
-  set_empty_hearing_details = True
----
-sets: set_empty_adr_details
-scan for variables: False
-code: |
-  need_adr_details = ""
-  need_adr_date = ""
-  
-  set_empty_adr_details = True
----
-sets: set_empty_other_court_event_details
-scan for variables: False
-code: |
-  need_other_court_event_details = ""
-  need_other_court_event_date = ""
-  
-  set_empty_other_court_event_details = True
----
-sets: set_empty_trial_details
-scan for variables: False
-code: |
-  need_trial_details = ""
-  need_trial_date = ""
-  
-  set_empty_trial_details = True
----
-sets: set_empty_others_details
-scan for variables: False
-code: |
-  need_others_details = ""
-  need_others_date = ""
-  
-  set_empty_others_details = True
 ---
 code: |
   interview_short_title = "Ask the court for a Notice of Limited Appearance"
 ---
-id: form description
+id: attorney certification
+question: |
+  Attorney certification notice
+subquestion: |
+  "I certify that I have completed an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download) as required, and that I have signed a written agreement with the Client above to provide the limited representation in this matter as described above."
+  
+  **Do you agree to the above certification?**
+yesno: agrees_to_certify
+---
+id: Kick out screen for not certifying 
+event: kick_out_no_certification
+question: 
+  You must complete an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download). 
+buttons:
+  - Exit: exit
+    url: https://massaccess.suffolklitlab.org/
+  - Restart: restart
+---
+id: client availability
 question: |
   Notice of Limited Appearance
 subquestion: |
@@ -304,11 +268,9 @@ id: attorney certification
 question: |
   Attorney certification notice
 subquestion: |
-  I certify that I have completed an approved LAR information session as required, and   that I have signed a written agreement with the Client above to provide the limited     representation in this matter as described above. 
-  
-  I also certify that I have served this Notice of Limited Appearance on this             Client, all counsel and all Parties not represented by counsel
+  I also certify that I have served this Notice of Limited Appearance on this Client, all counsel and all Parties not represented by counsel
 fields:
-  - no label: agrees_to_certify
+  - no label: agrees_to_service_certification
     datatype: checkboxes
     minlength: 1
     choices:
@@ -478,11 +440,11 @@ progress: 99
 ---
 id: date of attorney signature
 question: |
- Dated:
+ Signature date
 fields:
-  - Date: attorney_signature_date
+  - no label: attorney_signature_date
     datatype: date
-    default: ${today().format("yyyy-MM-dd")}
+    default: ${today()}
 ---
 id: signature choice
 decoration: file-signature
@@ -502,25 +464,14 @@ script: |
   </script>
 ---
 comment: |
-  This block is shown when the user texts a link to sign a form
+  This is a hack until other code gets developed. 
 id: signature wait screen
-#question: |
-#  % if defined('tenant.signature'):
-#  Thank you for signing.
-#  % else:
-#  Sign on your phone
-#  % endif
 question: |
   % if device().is_pc:
-  % if defined('tenant.signature'):
-  Click ${word("next")}.
-  % else:
   Click ${word("next")} on this screen once your client has finished signing on their phone.
-  % endif
   % else:
   You have been asked to sign this PDF. Click to review it.    
   ${form_to_sign}  
-  [Make changes](${url_action('review_all_sections')})
   Click ${word("next")} on this screen when you're ready to sign.
   % endif  
 field: signature_wait_screen
@@ -539,7 +490,6 @@ fields:
   - label: Cell phone number
     field: link_cell
     show if: text_link
-    default: ${showifdef('users[0].phone_number')}
   - note: |
       Click ${word("next")} to add your signature.
     show if: 
@@ -575,13 +525,13 @@ code: |
   attorney_signature_date
   #is the client available to sign
   if client_can_sign_now:
-    #want user to be to send link to client to sign
+    #want user to be able to send link to client to sign
     link_cell
     sms_was_sent
     # TODO & BUG: what if client accepts the text on their computer?
     if device().is_mobile:
       clients[0].signature
-      signature_date = today().format("MM-dd-yyyy")
+      signature_date = today()
     else:
       signature_wait_screen
   else:
@@ -595,7 +545,7 @@ question: |
 fields:
   - Date: signature_date
     datatype: date
-    default: ${today().format("yyyy-MM-dd")}
+    default: ${today()}
 ---
 id: download final form
 event: download
@@ -614,3 +564,59 @@ subquestion: |
   
   ${ final_form }
 attachment code: notice_of_limited_appearance
+---
+sets: set_client_signature
+scan for variables: False
+code: |
+  signature_fields = ""
+  signature_date = ""
+  
+  set_client_signature = True
+--- 
+sets: set_empty_motion_details
+scan for variables: False
+code: |
+  need_motion_details = ""
+  need_motion_date = ""
+  
+  set_empty_motion_details = True
+---
+sets: set_empty_hearing_details
+scan for variables: False
+code: |
+  need_hearing_details = ""
+  need_hearing_date = ""
+  
+  set_empty_hearing_details = True
+---
+sets: set_empty_adr_details
+scan for variables: False
+code: |
+  need_adr_details = ""
+  need_adr_date = ""
+  
+  set_empty_adr_details = True
+---
+sets: set_empty_other_court_event_details
+scan for variables: False
+code: |
+  need_other_court_event_details = ""
+  need_other_court_event_date = ""
+  
+  set_empty_other_court_event_details = True
+---
+sets: set_empty_trial_details
+scan for variables: False
+code: |
+  need_trial_details = ""
+  need_trial_date = ""
+  
+  set_empty_trial_details = True
+---
+sets: set_empty_others_details
+scan for variables: False
+code: |
+  need_others_details = ""
+  need_others_date = ""
+  
+  set_empty_others_details = True
