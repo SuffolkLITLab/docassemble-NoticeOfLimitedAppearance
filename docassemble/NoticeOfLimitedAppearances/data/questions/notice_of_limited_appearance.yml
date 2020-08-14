@@ -79,19 +79,21 @@ code: |
 code: |
   interview_short_title = "Ask the court for a Notice of Limited Appearance"
 ---
-id: attorney certification
+id: attorney certification 1
 question: |
-  Attorney certification notice
+  Attorney certification
 subquestion: |
   "I certify that I have completed an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download) as required, and that I have signed a written agreement with the Client above to provide the limited representation in this matter as described above."
   
-  **Do you agree to the above certification?**
+  **Have you completed the required LAR information session?**
 yesno: agrees_to_certify
 ---
 id: Kick out screen for not certifying 
 event: kick_out_no_certification
-question: 
-  You must complete an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download). 
+question: |
+  Did you miss the memo?
+subquestion: |
+  As you know, the chief justice requires all LAR attorneys to complete an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download).
 buttons:
   - Exit: exit
     url: https://massaccess.suffolklitlab.org/
@@ -101,9 +103,9 @@ id: client availability
 question: |
   Notice of Limited Appearance
 subquestion: |
-  You will be asked to send a link to your client at the end of this interview for them to sign the final form.
+  At the end of this interview you will get a link you can send to your client. They can use the link to sign the final form.
   
-  Is your client available to sign this form? 
+  **Will your client be able to sign it?**
 yesno: client_can_sign_now
 ---
 id: court question
@@ -162,7 +164,7 @@ subquestion: |
   
   If there is a chance they may not understand everything that is said in English, or other people may not be able to understand them, ask for an interpreter.
   
-  They do not have to speak only through the interpeter, but they may have one if they need one.
+  They do not have to speak only through the interpreter, but they may have one if they need one.
 fields:
   - Is an interpreter required?: user_needs_interpreter
     datatype: yesnoradio
@@ -197,9 +199,9 @@ code: |
 ---
 id: events or issues
 question: |
-  What court event(s) or issue(s) are you representing your client in?
+  What court events or issues are you representing your client in?
 subquestion: |
-  You and your Client have both signed a written agreement for you to represent your client on a limited basis in the following court event(s) or discrete issue(s) as described below (list event date where applicable).
+  You and your Client have both signed a written agreement for you to represent your client on a limited basis in the following court events or discrete issues as described below (list event date where applicable).
 fields:
   - Motion: need_motion
     datatype: yesno
@@ -264,11 +266,11 @@ validation code: |
       (not showifdef('need_others_details'))):
     validation_error(word("You need to state at least one event/issue."))
 ---
-id: attorney certification
+id: attorney certification 2
 question: |
-  Attorney certification notice
+  Attorney certification
 subquestion: |
-  I also certify that I have served this Notice of Limited Appearance on this Client, all counsel and all Parties not represented by counsel
+  "I also certify that I have served this Notice of Limited Appearance on this Client, all counsel and all Parties not represented by counsel."
 fields:
   - no label: agrees_to_service_certification
     datatype: checkboxes
@@ -367,20 +369,6 @@ subquestion: |
 buttons:
   ${word("Resume")}: continue
 ---
-id: review before signature
-need: form_to_sign
-continue button field: preview_screen
-question: |
-  Nearly finished
-subquestion: |
-  You are almost done! Please click on the form below. It will open in a new window so you can review it and make sure it is correct.
-  
-  Don't forget to come back to this page to click to the final step of signing and sending the form to the court. 
-   
-   ${ form_to_sign }
-   
-progress: 95
----
 #id: download form
 #event: download
 #comment: |
@@ -430,7 +418,7 @@ progress: 95
 ---
 id: attorney signature
 question: |
-  This form requires your signature and the signature of your client.
+  This form requires your signature and your client's signature
 subquestion: | 
   You can sign below using the mouse or touchpad of your computer. By clicking "Next" you will be able to continue the interview and text your client a link to sign this form.
 signature: users[0].signature
@@ -440,7 +428,7 @@ progress: 99
 ---
 id: date of attorney signature
 question: |
- Signature date
+ Signature date on form
 fields:
   - no label: attorney_signature_date
     datatype: date
@@ -468,7 +456,7 @@ comment: |
 id: signature wait screen
 question: |
   % if device().is_pc:
-  Click ${word("next")} on this screen once your client has finished signing on their phone.
+  Click ${word("next")} on this screen once your client has finished signing on their phone
   % else:
   You have been asked to sign this PDF. Click to review it.    
   ${form_to_sign}  
@@ -488,11 +476,6 @@ fields:
     show if: 
       code: |
         not device().is_pc
-help: |
-  Many smartphones will automatically find the link on this screen when you use
-  the camera app. The link
-  may "float" up from the screen into a small icon you can click.
-  If your phone does not do this, use the text option instead.
 continue button field: saw_signature_qrcode
 ---
 id: signature phone followup
