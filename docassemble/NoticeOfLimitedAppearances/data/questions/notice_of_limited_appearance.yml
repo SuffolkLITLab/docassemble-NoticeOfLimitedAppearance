@@ -37,8 +37,6 @@ code: |
   basic_questions_intro_screen
   if not agrees_to_certify:
     kick_out_no_certification
-  if not agreement_with_client: 
-    kick_out_client_not_on_retainer
   client_can_sign_now
   ask_court_question
   #docket_number_question 
@@ -49,6 +47,8 @@ code: |
   defendant_name
   represented_party
   clients.gather()
+  if not agreement_with_client.all_true(): 
+    kick_out_client_not_on_retainer
   user_needs_interpreter
   if not need_motion:
     set_empty_motion_details
@@ -105,17 +105,23 @@ id: attorney certification 2
 question: |
   Attorney Certification
 subquestion: |
-  "I certify... that I have signed a written agreement with the Client above to provide the limited representation in this matter as described above."
-  
-  **Have you signed a written agreement with the Client?**
-yesno: agreement_with_client
+  "I certify... that I have signed a written agreement with ${clients[0].name} to provide the limited representation in this matter as described above."
+fields: 
+  - "I certify that": agreement_with_client
+    datatype: checkboxes
+    choices: 
+    - I have precisely described the scope of my representation with ${clients[0].name} in a written document
+    - I have reviewed the document with ${clients[0].name}
+    - I have obtained clients informed consent 
+    - ${clients[0].name} signed the document 
+    - I signed the document
 ---
 id: Kick out screen for client not on retainer
 event: kick_out_client_not_on_retainer
 question: |
-  Did you miss the memo?
+  Did you miss the rule?
 subquestion: |
-  As you know, you must have signed a written agreement with the Client above to provide the limited representation in this matter.
+  [Trial Court Rule XVI: Uniform Rule on Limited Assistance Representation](https://www.mass.gov/trial-court-rules/trial-court-rule-xvi-uniform-rule-on-limited-assistance-representation#1-limited-assistance-representation) says, "Before representing a client in an LAR matter, an attorney shall give a prospective client a written agreement that clearly and precisely states the scope of representation. The attorney shall review the written agreement with the client before it is signed and obtain the client's informed consent. Both the attorney and the client shall sign the agreement.
 buttons:
   - Exit: exit
     url: https://massaccess.suffolklitlab.org/
@@ -349,9 +355,6 @@ question: |
   Preview your form
 subquestion: |
   Click the form below to open it in a new window.
-  
-  Look it over carefully. If you have any corrections, use "Back"
-  to fix the mistakes.
   
   ${ form_to_sign }
 continue button field: preview_screen
