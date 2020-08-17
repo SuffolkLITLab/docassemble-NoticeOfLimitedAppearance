@@ -37,6 +37,8 @@ code: |
   basic_questions_intro_screen
   if not agrees_to_certify:
     kick_out_no_certification
+  if not agreement_with_client: 
+    kick_out_client_not_on_retainer
   client_can_sign_now
   ask_court_question
   #docket_number_question 
@@ -81,7 +83,7 @@ code: |
 ---
 id: attorney certification 1
 question: |
-  Attorney certification
+  Attorney Certification
 subquestion: |
   "I certify that I have completed an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download) as required, and that I have signed a written agreement with the Client above to provide the limited representation in this matter as described above."
   
@@ -94,6 +96,26 @@ question: |
   Did you miss the memo?
 subquestion: |
   As you know, the chief justice requires all LAR attorneys to complete an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download).
+buttons:
+  - Exit: exit
+    url: https://massaccess.suffolklitlab.org/
+  - Restart: restart
+---
+id: attorney certification 2
+question: |
+  Attorney Certification
+subquestion: |
+  "I certify... that I have signed a written agreement with the Client above to provide the limited representation in this matter as described above."
+  
+  **Have you signed a written agreement with the Client?**
+yesno: agreement_with_client
+---
+id: Kick out screen for client not on retainer
+event: kick_out_client_not_on_retainer
+question: |
+  Did you miss the memo?
+subquestion: |
+  As you know, you must have signed a written agreement with the Client above to provide the limited representation in this matter.
 buttons:
   - Exit: exit
     url: https://massaccess.suffolklitlab.org/
@@ -266,7 +288,7 @@ validation code: |
       (not showifdef('need_others_details'))):
     validation_error(word("You need to state at least one event/issue."))
 ---
-id: attorney certification 2
+id: attorney certification 3
 question: |
   Attorney certification
 subquestion: |
