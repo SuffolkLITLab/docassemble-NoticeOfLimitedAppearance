@@ -1,4 +1,4 @@
-# docassemble.NoticeOfLimitedAppearances
+# docassemble.NoticeOfLimitedAppearance
 
 A docassemble extension.
 
