@@ -35,20 +35,14 @@ mandatory: True
 code: |
   interview_presets
   basic_questions_intro_screen
-  if not agrees_to_certify:
-    kick_out_no_certification
-  client_can_sign_now
+  agrees_to_certify
   ask_court_question
-  #docket_number_question 
-  docket_numbers.there_are_any = True
-  docket_numbers.gather() 
+  docket_numbers
   users[0].name.first
   plaintiff_name
   defendant_name
   represented_party
   clients.gather()
-  if not agreement_with_client.all_true(): 
-    kick_out_client_not_on_retainer
   user_needs_interpreter
   if not need_motion:
     set_empty_motion_details
@@ -74,67 +68,31 @@ code: |
   users[0].fax
   users[0].email
   preview_screen
-  agrees_to_service_certification
+  client_can_sign_now
   signature_flow
   download
 ---
 code: |
-  interview_short_title = "Ask the court for a Notice of Limited Appearance"
+  interview_short_title = "File a Notice of Limited Appearance"
 ---
-id: attorney certification 1
+id: attorney certification
 question: |
   Attorney Certification
 subquestion: |
-  "I certify that I have completed an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download) as required, and that I have signed a written agreement with the Client above to provide the limited representation in this matter as described above."
-  
-  **Have you completed the required LAR information session?**
-yesno: agrees_to_certify
----
-id: Kick out screen for not certifying 
-event: kick_out_no_certification
-question: |
-  Did you miss the memo?
-subquestion: |
-  As you know, the chief justice requires all LAR attorneys to complete an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download).
-buttons:
-  - Exit: exit
-    url: https://massaccess.suffolklitlab.org/
-  - Restart: restart
----
-id: attorney certification 2
-question: |
-  Attorney Certification
-subquestion: |
-  "I certify... that I have signed a written agreement with ${clients[0].name} to provide the limited representation in this matter as described above."
-fields: 
-  - "I certify that": agreement_with_client
+  I certify that...
+   
+   - I have completed an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download) as required,
+   - that I have signed a [written agreement with the Client](https://www.mass.gov/trial-court-rules/trial-court-rule-xvi-uniform-rule-on-limited-assistance-representation#1-limited-assistance-representation) to provide the limited representation in this matter, and 
+   - that I have served this Notice of Limited Appearance on this Party, all counsel and all parties not represented by counsel.
+fields:
+  - no label: agrees_to_certify
     datatype: checkboxes
-    choices: 
-    - I have precisely described the scope of my representation with ${clients[0].name} in a written document
-    - I have reviewed the document with ${clients[0].name}
-    - I have obtained clients informed consent 
-    - ${clients[0].name} signed the document 
-    - I signed the document
----
-id: Kick out screen for client not on retainer
-event: kick_out_client_not_on_retainer
-question: |
-  Did you miss the rule?
-subquestion: |
-  [Trial Court Rule XVI: Uniform Rule on Limited Assistance Representation](https://www.mass.gov/trial-court-rules/trial-court-rule-xvi-uniform-rule-on-limited-assistance-representation#1-limited-assistance-representation) says, "Before representing a client in an LAR matter, an attorney shall give a prospective client a written agreement that clearly and precisely states the scope of representation. The attorney shall review the written agreement with the client before it is signed and obtain the client's informed consent. Both the attorney and the client shall sign the agreement.
-buttons:
-  - Exit: exit
-    url: https://massaccess.suffolklitlab.org/
-  - Restart: restart
----
-id: client availability
-question: |
-  Notice of Limited Appearance
-subquestion: |
-  At the end of this interview you will get a link you can send to your client. They can use the link to sign the final form.
-  
-  **Will your client be able to sign it?**
-yesno: client_can_sign_now
+    minlength: 1
+    choices:
+      - Certify
+    validation messages:
+      minlength: |
+        You cannot continue unless you check this box.
 ---
 id: court question
 question: |
@@ -148,16 +106,18 @@ fields:
     choices: macourts.filter_courts(allowed_courts)
 continue button field: ask_court_question
 ---
-id: docket number
-#continue button field: docket_number_question
+id: docket numbers
 question: |
-  What is the docket number for this case?
+  What is the docket number?
 subquestion: |
-  If there are multiple docket numbers on this form, you can click "${word("Add another")}"
-  to add more than one.
-list collect: True
+  If your court paperwork has more than one docket number, list them all. Put a comma after each number.
+  
+  If you do not have enough space to list them all, that is OK.  
 fields:
-  - no label: docket_numbers[i]
+  - no label: docket_numbers
+    input type: area
+    minlength: 0
+    maxlength: 75
     required: True
 ---
 id: parties question
@@ -168,19 +128,6 @@ fields:
     required: True
   - Name of Defendant/Respondent: defendant_name
     required: True
----
-id: attorney name
-question:  |
-  What is your name?
-fields:
-  - First Name: users[0].name.first
-  - Middle Name: users[0].name.middle
-    required: False
-  - Last Name: users[0].name.last
-  - Suffix: users[0].name.suffix
-    code: |
-      name_suffix()
-    required: False 
 ---
 id: interpreter question
 question: |
@@ -294,21 +241,6 @@ validation code: |
       (not showifdef('need_others_details'))):
     validation_error(word("You need to state at least one event/issue."))
 ---
-id: attorney certification 3
-question: |
-  Attorney certification
-subquestion: |
-  "I also certify that I have served this Notice of Limited Appearance on this Client, all counsel and all Parties not represented by counsel."
-fields:
-  - no label: agrees_to_service_certification
-    datatype: checkboxes
-    minlength: 1
-    choices:
-      - Certify
-    validation messages:
-      minlength: |
-        You cannot continue unless you check this checkbox.
----
 need: agrees_to_tos
 question: All done
 ---
@@ -334,8 +266,6 @@ question: |
   Your contact information
 subquestion: |
   The court needs to be able to reach you to schedule your hearing.
-  
-  Include at least **one** way to reach you other than by mail.
 fields:  
   - Office or home phone number: users[0].phone_number
   - Mobile number: users[0].mobile_number
@@ -354,16 +284,28 @@ id: preview screen
 question: |
   Preview your form
 subquestion: |
-  Click the form below to open it in a new window.
+  This form requires both your and ${clients[0].name}'s signature. 
+  
+  You can download and print this form unsigned or continue to e-sign.
   
   ${ form_to_sign }
 continue button field: preview_screen
 ---
-code: |
- form_to_sign = pdf_concatenate(preview_doc)
+id: client availability
+question: |
+  Notice of Limited Appearance
+subquestion: |
+  This form requires both your and ${clients[0].name}'s signature.
+  
+  You can sign the form on your phone or computer and can send it to your client to sign on their phone or computer. 
+  
+  If your client is unable to sign the form now, you can e-sign, print, and have your client sign later. 
+  
+  **Is your client ready to sign now?**
+yesno: client_can_sign_now
 ---
 code: |
-  #download_titles = ["notice_of_limited_appearance"]
+ form_to_sign = pdf_concatenate(preview_doc)
 ---
 attachment:
   docx template file: notice_of_limited_appearance.docx
@@ -376,74 +318,9 @@ attachment:
   docx template file: notice_of_limited_appearance.docx
   variable name: notice_of_limited_appearance
 ---
-event: review_all_sections
-question: |
-  Review your answers
-subquestion: |
-  ${showifdef('form_to_sign')}
-  % if defined('form_delivery_complete'):
-  **Warning: your form has already been delivered.** Any changes you make
-  will _not_ be sent to the court.
-  % endif
-  Click a section to revisit the answers from that section.
-  % for section in section_links(nav):
-  * ${section}
-  % endfor
-  Press "${word("Resume")}" to resume the
-  interview.
-buttons:
-  ${word("Resume")}: continue
----
-#id: download form
-#event: download
-#comment: |
-#  The attachment email screen relies on final_form_to_file being defined. This
-#  will be built from the interview_metadata dictionary's contents, but if you
-#  add any addenda you will want to set this in a code block somewhere that takes
-#  priority over basic-questions.yml.
-#decoration: file-download
-#question: |
-#  % if not defined('email_success') or not email_success:
-#  Review, Download, and Send Form
-#  % else:
-#  Form delivered
-#  % endif
-#subquestion: |
-#  % if not defined('email_success') or not email_success:
-#  Thank you ${users[0]}. Your form is ready to send to the court. **It is not
-#  delivered until you complete the delivery process below.**
-#  1. Click the preview image below to open the form in a new window. Correct any errors using the "Make changes" button below.
-#  1. Download and save or print a copy of this form for your 
-#  records.
-#  1. Click the "Submit to ${courts[0]}" button to send it to the court. 
-#  1. You will have a chance to add instructions to the clerk and see the cover page before final delivery.
-#  % else:
-#  If you do not hear from the court in 1 business day, call the Trial Court's
-#  Emergency HelpLine 833-91-COURT (833-912-6878).
-#  The Emergency HelpLine is open:  
-#  8:30am - 4:30pm,   
-#  Monday - Friday.
-#  % endif
-#  ${ form_to_file_no_cover }  
-#  
-#  ${action_button_html(url_action('review_all_sections'), icon='edit', label=word("Make changes"))}
-#  
-#  % if not defined('email_success') or not email_success:
-#    ${ action_button_html( url_action('form_delivery_complete'), id_tag="submitToCourt", label="Submit to " + str(courts[0].name), icon=send_icon, size="md", color="primary")}
-#    
-#  Or download/email below:
-#  % else:
-#    Your email has already been delivered to ${courts[0]}
-#    
-#  [:file-download: Download with cover page](${final_form_to_file.url_for()})    
-#  % endif
-#progress: 100
-#attachment code: notice_of_limited_appearance
-#section: download
----
 id: attorney signature
 question: |
-  This form requires your signature and your client's signature
+  Your signature
 subquestion: | 
   You can sign below using the mouse or touchpad of your computer. By clicking "Next" you will be able to continue the interview and text your client a link to sign this form.
 signature: users[0].signature
