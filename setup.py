@@ -42,7 +42,7 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
                 out.setdefault(package, []).append(prefix+name)
     return out
 
-setup(name='docassemble.NoticeOfLimitedAppearances',
+setup(name='docassemble.NoticeOfLimitedAppearance',
       version='0.0.1',
       description=('A docassemble extension.'),
       long_description='# docassemble.NoticeOfLimitedAppearance\r\n\r\nA docassemble extension.\r\n\r\n## Author\r\n\r\nSinéad Vaughan, sineadmnvaughan@gmail.com\r\n\r\n',
@@ -55,6 +55,6 @@ setup(name='docassemble.NoticeOfLimitedAppearances',
       namespace_packages=['docassemble'],
       install_requires=[],
       zip_safe=False,
-      package_data=find_package_data(where='docassemble/NoticeOfLimitedAppearances/', package='docassemble.NoticeOfLimitedAppearances'),
+      package_data=find_package_data(where='docassemble/NoticeOfLimitedAppearance/', package='docassemble.NoticeOfLimitedAppearance'),
      )
 
