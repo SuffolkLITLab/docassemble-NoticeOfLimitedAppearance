@@ -33,6 +33,7 @@ objects:
 id: interview order
 mandatory: True
 code: |
+  form_approved_for_email_filing = False
   interview_presets
   basic_questions_intro_screen
   agrees_to_certify
@@ -96,9 +97,8 @@ fields:
 ---
 id: court question
 question: |
-  What court is the case being heard in?
+  What court is this case being heard in?
 subquestion: |
-  The case can be heard in these courts: ${comma_and_list(allowed_courts)}.
   The local court can be found by using the [Courthouse Locator](https://www.mass.gov/guides/find-a-courthouse-serving-you).
 fields:
   - Court name: courts[0]
