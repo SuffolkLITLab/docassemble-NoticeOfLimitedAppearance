@@ -387,8 +387,8 @@ field: signature_phone_followup
 ---
 template: interview_link
 content: |
-  Hi, ${ users[0] }  sent you a form from MassAccess. To sign the form,
-  click the link below:  
+  Hi, your attorney ${ users[0] } would like to you to sign a Notice of Limited
+  Appearance. To sign the form, click the link below:  
   ${interview_url()}
 ---
 code: |
