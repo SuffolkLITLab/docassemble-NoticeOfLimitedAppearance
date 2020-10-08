@@ -1,0 +1,592 @@
+comment: |
+  Pre-made functionality for non-user signatures. For signing flow in general?
+  `remote` in here refers to devices of signers other than the user or those using the user's device.
+  
+  As usual, these can all be customized. It just hopes to help save brain cells.
+  
+  TODO: Try replacing `reconsider` with `depends on`
+  TODO:
+  1. Invalidate signatures if form changes or 
+  1. DECISION: "You cannot change the form" AND "You will not be able to change it after someone else has signed it" or 
+  1. "You have changed the form and need to get it signed again."
+  TODO: invalidate signatures if this is a copy.
+---
+# Make own function to make this more independent?
+modules:
+  - docassemble.VirtualCourtToolbox.misc
+---
+include:
+  - sign_on_device.yml
+---
+objects:
+  - redis: DARedis
+---
+mandatory: True
+code: |
+  multi_user = True
+---
+################################
+# Data for other signers' interviews
+################################
+---
+#-------------------
+# Data store
+#-------------------
+---
+# TODO: Consider changing model. First create the standard data in here, then send it to be modified/customized by the originating interview, then store it. Might be a model more suited to an advanced user, though.
+code: |
+  signature_data_id
+
+  # DEVELOPER: Assumes list of users
+  if not defined('all_signers'):
+    all_signers = users
+
+  # Have to abstract so devs can create/use their own docs and text effectively?
+  # DEVELOPERS: Create `signature_data` elsewhere, as shown below
+  signature_data = {}
+  if defined('custom_signature_redis_data'):
+    # Maybe reconsider('custom_signature_redis_data')
+    signature_data = custom_signature_redis_data
+  
+  parties = {}
+  for signer in all_signers:
+    parties[ signer.id ] = {
+      "has_signed": False, "willing_to_sign": None, "name": signer.name
+    }
+  signature_data[ 'parties' ] = parties
+  
+  # DEVELOPER: you or your SMEs must decide how long you will store the document
+  redis.set_data( signature_data_id, signature_data, expire=remote_siganure_expiration_ms )
+  set_initial_redis_data = True
+---
+### Do we want a default one for every multi-user interview?
+## Without a default, the developer will be alerted that they need to make one
+#code: |
+#  # When the saved redis data will expire: days * hours * minutes * seconds
+#  # https://docassemble.org/docs/objects.html#DARedis
+#  remote_siganure_expiration_ms = 1 * 6 * 60 * 60  # 6hrs
+---
+event: update_stored_data
+# Current use expectation - update final form
+# Possible way to deal with edited answers
+# Not quite sure what all to reconsider in this place, honestly
+code: |
+  signature_data = redis.get_data( signature_data_id )
+  # reconsider( 'update_custom_redis_data' )  # Update form and signatures?
+  # redis.set_data( signature_data_id, signature_data, expire=remote_siganure_expiration_ms )
+---
+reconsider:
+  - form_to_sign
+#  - final_form
+code: |
+  make_sure_preview_is_accessible
+  # Whatever info you want to be able to use for the other signers' interview
+  custom_signature_redis_data = {
+    'user_names': comma_and_list(users),
+    'preview': form_to_sign,
+    #'final_form': final_form,  # not updating yet
+    'user_email': users[0].email if defined('users[0].email') else None,
+    'user_mobile': users[0].mobile_number if defined('users[0].mobile_number') else None,
+    # So users will get notifications when other signers sign
+    'interview_url': shortenMe( interview_url_action('check_status', party_id=users[0].id) ).shortenedURL
+  }
+---
+# TODO: Implement this to show cosigner final form.
+depends on: final_form
+code: |
+  # get redis data
+  # change redis data
+  # store redis data
+  update_final_form = True
+---
+code: |
+  form_to_sign.set_attributes(private=False, persistent=True)
+  make_sure_preview_is_accessible = True
+---
+# Get data from store to update attachment and other things
+code: |
+  new_data = redis.get_data( signature_data_id )
+  signing_parties = new_data[ 'parties' ]
+  for signer in all_signers:
+    if signer.id in signing_parties:
+      # TODO: Test this thoroughly
+      if signing_parties[ signer.id ][ 'has_signed' ]:
+        signer.has_signed = signing_parties[ signer.id ][ 'has_signed' ]
+        signer.signature = signing_parties[ signer.id ][ 'signature' ]
+      
+      if defined( signer.attr_name( 'signature' )):
+        signer.willing_to_sign = True
+      elif signing_parties[ signer.id ][ 'willing_to_sign' ] is False:
+        signer.willing_to_sign = False
+  
+  get_stored_data = True
+---
+generic object: Individual
+code: |
+  x.has_signed = False  # Ensure always defined
+---
+################################
+# Local interview
+################################
+---
+#-----------------------------
+# Gather other signers' message info
+---
+# DEVELOPER: Copy this and decide what information you need
+# about the other signers.
+id: get other signer info
+generic object: Individual
+code: |
+  x.name.first
+  x.mobile_number  # court info
+  x.send_method = x.sign_method
+  x.get_signature_info = True
+---
+id: are there other signers
+# TODO: There may already be a basic question for this
+generic object: PeopleList
+question: |
+  Do you need someone else's signature?
+fields:
+  - no label: x.there_are_any
+    datatype: radio
+    choices:
+      - I am the only signer: False
+      - At least one other person other than me will sign: True
+---
+#### There may already be a basic question for this
+id: other signer name
+reconsider: other_signers
+generic object: PeopleList
+question: |
+  % if i == 0:
+  What is this signer's name?
+  % else:
+  What is your ${ ordinal(i) } signer's name?
+  % endif
+fields:
+  - First Name: x[i].name.first
+  - Middle Name: x[i].name.middle
+    required: False
+  - Last Name: x[i].name.last
+  - Suffix: x[i].name.suffix
+    code: |
+      name_suffix()
+    required: False
+---
+#### Unlikely to be in basic questions
+id: other signer court contact info
+generic object: Individual
+question: |
+  How should the court contact ${ x }?
+subquestion: |
+  Make sure you have ${ x.familiar() }'s permission to put this on the form.
+fields:
+  - Mobile number: x.mobile_number
+    required: False
+  - Other phone number: x.phone_number
+    required: False
+  - Email address: x.email    
+    datatype: email
+    required: False
+---
+id: how to send to other signer
+generic object: Individual
+question: |
+  How will ${ x } sign this document?
+subquestion: |
+  ${ x.familiar() } must sign this before you give it to the court. They can sign
+  
+  * on their computer,
+  * on their phone,
+  * on your computer or phone, or
+  * on paper.
+    
+  If you sign on your computer or phone we will send you a link to draw your signature with your mouse or finger.
+  
+  How are you going to get ${ x.familiar() }'s signature on this document?
+#  * ask you to sign for them,
+fields:
+  - no label: x.sign_method
+    datatype: radio
+    choices:
+      - __Email__ ${ x.familiar() } a link: email
+      - __Text__ ${ x.familiar() } a link: text
+      #- ${ x.familiar() } asked me to sign their name for them: proxy
+      - ${ x.familiar() } will sign with me at the end of the interview: local
+      - I will print my document and ${ x.familiar() } will sign the paper copy: physical
+  - What email should we use to ask for ${ x.familiar() }'s signature?: x.signature_email
+    default: ${ showifdef( x.attr_name( 'email' )) }
+    js show if: |
+      val("x.sign_method") == "email"
+  - What number should we text to ask for ${ x.familiar() }'s signature?: x.signature_number
+    default: ${ showifdef( x.attr_name( 'mobile_number' )) }
+    js show if: |
+      val("x.sign_method") == "text"
+---
+#### Basic questions?
+id: are there more other signers
+generic object: PeopleList
+question: |
+  Is anyone else signing this document?
+subquestion: |
+  % if len(x.elements) > 0:
+  You already told us about ${comma_and_list(set(x.elements))}
+  % endif
+yesno: x.there_is_another
+---
+# Only triggered for signers who user is signing for.
+# Using intrinsic names is not enough.
+id: proxy signature
+generic object: Individual
+if: |
+  x in who_proxy_sign_for
+question: |
+  Sign ${ x }'s name
+signature: x.signature
+under: |
+  ${ x }
+progress: 99
+---
+#--------------------
+# Device choice for signature
+---
+# Triggered by .sign_on_device
+# Cosigner functionality needs this
+
+# After the user signs, the links for the other signers get sent
+# TODO: Should this be in the opinionated file or in the developers' files?
+# TODO: should this take over before users[0].sign_on_device and run the whole show?
+event: x.after_signature
+generic object: Individual
+code: |
+  get_other_signer_signatures
+  users[0].after_other_signers_signatures_sought
+---
+# DEVELOPER: Copy this and use it to lead to the next code or question block.
+event: x.after_other_signer_signatures_sent
+generic object: Individual
+code: |
+  download
+---
+#-------------------
+# Other signer messages
+---
+# DEFAULT
+code: |
+  # DEVELOPERS: If you have your own remote entrypoint file, use its name/location instead
+  remote_signer_url_end = user_info().package + ':other_signer.yml'
+---
+code: |
+  custom_signature_redis_data
+  set_initial_redis_data
+  request_remote_signatures
+  
+  for local in local_signers:
+    local.signature
+    
+  get_other_signer_signatures = True
+---
+# Trigger notifications for all remote signers
+code: |
+  for remote in remote_signers:
+    remote.signature_url_was_sent
+  if len(remote_signers) > 0:
+    trigger_initial_notifications  # for user
+  request_remote_signatures = True
+---
+# Send notifications to a remote signer
+generic object: Individual
+code: |
+  if x.send_method == 'text': 
+    x.message_result = send_sms(to=x.signature_number, template=x.sms_template)
+  elif x.send_method == 'email':
+    x.message_result = send_email(to=x.signature_email, template=x.email_template)
+  x.signature_url_was_sent = True
+---
+id: other signer sms
+generic object: Individual
+template: x.sms_template
+content: |
+  ${ x.familiar() }, please review and sign ${ users[0].familiar() }’s document. Use this link. ${ x.other_signer_url }
+---
+# DEVELOPER: Make your own.
+# DEFAULT. If used with redis data, this puts all other signer emails in the same email thread. 
+template: other_signer_email_subject
+content: |
+  ${ users[0] } needs your signature on a legal document
+---
+id: other signer email
+reconsider: form_to_sign
+generic object: Individual
+template: x.email_template
+subject: |
+  ${other_signer_email_subject }
+content: |
+  Dear ${ x },
+
+  ${ users[0] } created a legal document. Review it to see if you are willing to sign it.
+
+  [Tap here to look at the document](${ form_to_sign.url_for(external=True) }).
+
+  [Tap here to sign the document](${ x.other_signer_url }).
+---
+generic object: Individual
+code: |
+  url_str = interview_url(
+    signature_data_id = signature_data_id,
+    party_id = x.id,
+    new_session = '1',
+    i=remote_signer_url_end  # The url the other signer will go to
+  )
+  x.other_signer_url = shortenMe( url_str ).shortenedURL
+---
+#-------------------
+# User messages
+---
+id: first user notifications
+code: |
+  background_action('send_initial_user_notifications')
+  trigger_initial_notifications = True
+---
+event: send_initial_user_notifications
+code: |
+  if len(remote_signers) > 0 and not task_performed('send_initial_sms'):
+    if defined( 'users[0].device_number' ) and users[0].device_number:
+      send_sms(task='send_initial_sms', to=users[0].device_number, template=initial_sms_template)
+    elif defined( 'users[0].mobile_number' ) and users[0].mobile_number:
+      send_sms(task='send_initial_sms', to=users[0].mobile_number, template=initial_sms_template)
+
+  if not task_performed('send_initial_email'):
+    if defined( 'users[0].email' ) and users[0].email:
+      send_email(task='send_initial_email', to=users[0], template=initial_email_template, attachments=form_to_sign)
+
+  background_response()
+---
+id: notify user of links sent (sms)
+template: initial_sms_template
+content: |
+  % if len(remote_signers) > 1:
+  ${ users[0].familiar() }, we sent your document to your signers. Use the link to see it. ${ shortenMe(interview_url_action('check_status', party_id=users[0].id)).shortenedURL }
+  % else:
+  ${ users[0].familiar() }, we sent your document to your signer. Use the link to see it. ${ shortenMe(interview_url_action('check_status', party_id=users[0].id)).shortenedURL }
+  % endif
+---
+# DEVELOPER: Make your own.
+# TODO: Integrate with redis data to do the same for notifications sent from other signers' behavior
+# DEFAULT. Puts all user emails in the same email thread. If you do not make it unique to this current specific client/interview, every time someone runs this interview (even for new clients) they will get all messages in the same email thread.
+template: user_email_subject
+content: |
+  Document for ${ comma_and_list(other_signers) }
+---
+# DEFAULT. Email to user notifying their signature links were sent. Uses `email_subject` template if defined to make sure emails stay in the same thread.
+id: notify user of links sent (email)
+template: initial_email_template
+subject: |
+  ${ user_email_subject }
+content: |
+  ${ users[0] },
+  
+  % if len( remote_signers ) > 1:
+  We asked ${ comma_and_list( remote_signers ) } to sign your document. We will e-mail you when they sign it.
+  
+  You can also [tap here to check if ${ comma_and_list( remote_signers ) } have signed the document](${ interview_url_action('check_status', party_id=users[0].id) }).
+
+  % else:
+  We asked ${ comma_and_list( remote_signers ) } to sign your document. We will e-mail you when ${ remote_signers } signs it.
+
+  You can also [tap here to check if ${ remote_signers } has signed the document](${ interview_url_action('check_status', party_id=users[0].id) }).
+  % endif
+---
+#--------------------
+# Download page info
+---
+## DEFAULT in case other code does not define this. Invisible error?
+## Think this should be ok, but don't implement till it can be tested
+#code: other_signers = []
+---
+reconsider:
+  - other_signers
+  - all_signers
+code: |
+  who_sign_with_pen = [cos for cos in other_signers if cos.sign_method == 'physical']
+  all_digital_other_signers = [cos for cos in other_signers if cos not in who_sign_with_pen]
+  # Get signatures that will be taken on this device
+  who_proxy_sign_for = [cos for cos in other_signers if cos.sign_method == 'proxy']
+  who_else_on_device = [cos for cos in other_signers if cos.sign_method == 'local']
+  local_signers = users + who_proxy_sign_for + who_else_on_device
+  # Used in here and for sending out for signatures (multiuser code)
+  remote_signers = all_signers.difference(local_signers + who_sign_with_pen)
+  collect_signer_types = True
+---
+# This was separated from other signer groups determinations for a reason, but what was the reason? Does it still apply?
+reconsider: other_signers
+code: |
+  unwilling_other_signers = [cos for cos in other_signers if hasattr(cos, 'willing_to_sign') and cos.willing_to_sign is False]
+---
+# DEFAULT. See if everyone has signed. Do not use this to send final notification. It will only be able to send final notification if the user refreshes the page. Trigger it in other signer interview (to be implemented).
+id: check all signed
+reconsider:
+  - get_stored_data
+  - collect_signer_types
+# Is requested when people check on the status of the signatures
+code: |
+  # Statuses: sent, signed, unwilling, physical
+  for cos in all_digital_other_signers:
+    if not defined( cos.attr_name( 'signature' )):
+      all_signatures_in = False
+      break
+  else:
+    all_signatures_in = True
+  get_status_of_signatures = True
+---
+# Edit below to change the text of the status page
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. Section listing other signers and their current status
+# Has a 'Check again' button to reload page to see new status.
+template: other_signers_status_section
+reconsider:
+  - get_stored_data
+  - collect_signer_types
+  - unwilling_other_signers
+content: |
+  
+  % if all_signatures_in:
+    ${ every_digital_signature_in_template }
+    
+  % else:
+  
+    % if len( unwilling_other_signers ) > 0:
+    ${ unwilling_list_template }
+
+    ${ unwilling_instructions }
+    <hr/>
+    % endif
+
+    ${ waiting_list_template }
+
+    ${ signed_list_template }
+  
+  % endif
+  
+  ${ paper_signature_list_template }
+  
+  % if len( remote_signers ) > 0:
+  ${ action_button_html('javascript:daShowSpinner();daRefreshSubmit()', label='Check again <i class="fas fa-sync-alt"></i>', size='md') }
+  % endif
+
+  % if len( other_signers ) > 0:
+  <hr/>
+  % endif
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. One-line list of all non-users who have signed
+template: every_digital_signature_in_template
+content: |
+  % if len( all_digital_other_signers ) > 1:
+  :check: ${ comma_and_list( all_digital_other_signers )} have signed.
+  % elif len( all_digital_other_signers ) > 0:
+  :check: ${ all_digital_other_signers[0] } has signed.
+  % endif
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. Multi-line list of signers signing on a different device who have said they're unwilling to sign.  The contact info used to send them a list is included.
+template: unwilling_list_template
+content: |
+  % for signer in unwilling_other_signers:
+  :times: ${ signer } refused to sign your document. We sent 
+  it to ${ signer.familiar() } at **${ signer.signature_message_endpoint }**.[BR]
+  % endfor
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. Instructions on what to do about a signer being unwilling to sign
+template: unwilling_instructions
+content: |
+  % if len( unwilling_other_signers ) > 1:
+  **You do not need ${ comma_and_list([str(person) + "'s" for person in unwilling_other_signers]) } signatures
+  to file the document. You can:**
+
+  * Download and file the document. You can ask
+  ${ comma_and_list(unwilling_other_signers) } to sign the paper
+  copy. If they do not sign the paper copy, you can cross out their
+  names and file it anyway. **Or,**
+  * Start the interview again. Use the 'Restart'
+  button. You can leave out ${ comma_and_list(unwilling_other_signers) }. **Or,**
+  * You can file the document as it is.
+  
+  % elif len( unwilling_other_signers ) > 0:
+  **You do not need ${ unwilling_other_signers[0] }'s signature
+  to file the document. You can:**
+
+  * Download and file the document. You can ask
+  ${ unwilling_other_signers[0] } to sign the paper
+  copy. If they do not sign the paper copy, you can cross out their
+  name and file it anyway. **Or,**
+  * Start the interview again. Use the 'Restart'
+  button. You can leave out ${ unwilling_other_signers[0] }. **Or,**
+  * You can file the document as it is.
+  
+  % endif
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. Multi-line list of signers signing on a different device who have been sent a request to sign, but haven't yet signed. The contact info used to send them a list is included.
+template: waiting_list_template
+content: |
+  % for signer in remote_signers:
+  % if not hasattr(signer, 'signature') and (not hasattr(signer,'willing_to_sign') or not signer.willing_to_sign is False):
+  :envelope: You sent a message to ${ signer } at
+  **${ signer.signature_message_endpoint }** to sign the
+  document. They have not signed yet.[BR]
+  % endif
+  % endfor
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. Multi-line list of signers who have signed on a different device than the user
+template: signed_list_template
+content: |
+  % for signer in other_signers:
+  % if hasattr(signer, 'signature'):
+  :check: ${ signer } has signed[BR]
+  % endif
+  % endfor
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. One-line list of signers who will sign the printed doc.
+# Code for multi-line list is also provided for developers who want to make a custom version in that style.
+template: paper_signature_list_template
+content: |
+  % if len( who_sign_with_pen ) > 0:
+  :pen-alt: ${ comma_and_list( who_sign_with_pen ) } will sign on the document when you print it.
+  % endif
+
+#  % for signer in who_sign_with_pen:
+#  :pen-alt: ${ signer } will sign on the document when you print it.[BR]
+#  % endfor
+---
+# https://docassemble.org/docs/initial.html#template
+# DEFAULT. Contact info used to send link to signers signing on a different device than the user. Templates are recaculated automatically
+generic object: Individual
+template: x.signature_message_endpoint
+content: |
+  ${ x.signature_email if x.send_method == "email" else x.signature_number }
+---
+###################
+# Data helpers
+###################
+---
+code: |  # key for data store  (redis, for example)
+  signature_data_id = get_random_chars()
+---
+# Authentication and identification when people come from other devices so right questions show.
+generic object: Individual
+code: |
+  x.id = get_random_chars()
+---
+# Perhaps turn into module. Default of 10 random characters.
+code: |
+  import random
+  import string
+  def get_random_chars(num_chars=10):
+    return ''.join(random.choice(string.ascii_lowercase) for i in range(10))
+---

@@ -1,5 +1,7 @@
 include:
   - docassemble.MAVirtualCourt:basic-questions.yml
+  - signer.yml
+  - sign_on_device.yml
 ---
 comment: |
   Predefine some variables we need
@@ -28,7 +30,7 @@ code: |
   final_form = notice_of_limited_appearance
 ---
 objects:  
-  - clients: PeopleList.using(auto_gather=False)
+  - clients: PeopleList.using(auto_gather=False, complete_attribute='complete')
 ---
 id: interview order
 mandatory: True
@@ -68,13 +70,39 @@ code: |
   users[0].phone_number
   users[0].fax
   users[0].email
+  
   preview_screen
-  client_can_sign_now
-  signature_flow
+  attorney_signature_date
+  collect_signer_types
+  users[0].sign_on_device
+---
+# Cosigner functionality triggers this
+event: x.after_other_signers_signatures_sought
+generic object: Individual
+code: |
   download
+---
+# Triggered by user following the link in a notification
+# about other signer's behavior. `action` allows check for authorization.
+event: check_status
+code: |
+  if action_argument('party_id') == users[0].id:
+    users[0].status
+  else:
+    unauthorized
+---
+id: 404
+event: unauthorized
+code: |
+  response('Page not found', response_code=404)
 ---
 code: |
   interview_short_title = "File a Notice of Limited Appearance"
+---
+code: |
+  # When the saved redis data will expire: days * hours * minutes * seconds
+  # https://docassemble.org/docs/objects.html#DARedis
+  remote_siganure_expiration_ms = 1 * 6 * 60 * 60  # 6hrs
 ---
 id: attorney certification
 question: |
@@ -130,10 +158,11 @@ fields:
     required: True
 ---
 id: interpreter question
+generic object: Individual
 question: |
-  Does your client need an interpreter?
+  Does ${ clients[0] } need an interpreter?
 subquestion: |
-  Your client has the right to an interpreter. 
+  ${ clients[0] } has the right to an interpreter. 
   
   If they are not 100% confident about speaking English, ask for an interpreter. 
   
@@ -157,12 +186,13 @@ fields:
       - Defendant/Respondent: Defendant
 ---
 code: |
-  clients.clear() 
-  clients.appendObject()
   if represented_party == "Plaintiff":  
     clients[0].name.first = plaintiff_name 
   else: 
     clients[0].name.first = defendant_name
+    
+  clients[0].send_method = clients[0].sign_method
+  clients[0].complete = True
   clients.gathered = True
 ---
 code: |
@@ -171,6 +201,10 @@ code: |
 ---
 code: |
   clients.there_are_any = True
+---
+code: |  # Cosigner functionality needs this
+  other_signers = clients
+  all_signers = users + other_signers
 ---
 id: events or issues
 question: |
@@ -291,18 +325,18 @@ subquestion: |
   ${ form_to_sign }
 continue button field: preview_screen
 ---
-id: client availability
-question: |
-  Notice of Limited Appearance
-subquestion: |
-  This form requires both your and ${clients[0].name}'s signature.
-  
-  You can sign the form on your phone or computer and can send it to your client to sign on their phone or computer. 
-  
-  If your client is unable to sign the form now, you can e-sign, print, and have your client sign later. 
-  
-  **Is your client ready to sign now?**
-yesno: client_can_sign_now
+#id: client availability
+#question: |
+#  Notice of Limited Appearance
+#subquestion: |
+#  This form requires both your and ${clients[0].name}'s signature.
+#  
+#  You can sign the form on your phone or computer and can send it to ${clients[0].name} to sign on their phone or computer. 
+#  
+#  If ${clients[0].name} is unable to sign the form now, you can e-sign, print, and have them sign later. 
+#  
+#  **Is your ${clients[0].name} ready to sign now?**
+#yesno: client_can_sign_now
 ---
 code: |
  form_to_sign = pdf_concatenate(preview_doc)
@@ -318,16 +352,14 @@ attachment:
   docx template file: notice_of_limited_appearance.docx
   variable name: notice_of_limited_appearance
 ---
-id: attorney signature
-question: |
-  Your signature
-subquestion: | 
-  You can sign below using the mouse or touchpad of your computer. By clicking "Next" you will be able to continue the interview and text your client a link to sign this form.
-signature: users[0].signature
-under: |
-  ${users[0]}
-progress: 99
----
+#id: attorney signature
+#question: |
+#  Your signature
+#signature: users[0].signature
+#under: |
+#  ${users[0]}
+#progress: 99
+#---
 id: date of attorney signature
 question: |
  Signature date on form
@@ -336,100 +368,27 @@ fields:
     datatype: date
     default: ${today()}
 ---
-id: signature choice
-decoration: file-signature
-question: |
-  We are almost ready to file your form. Your client will need to sign it first.
-subquestion: |
-  You can send this form to your client to sign if you choose the "phone" option.
-field: signature_choice
-buttons:  
-  - Sign on a phone: phone
-    image: mobile-alt
-continue button field: saw_signature_choice
-script: |
-  <script>
-    $(".da-field-buttons > div > .btn-da-custom").last().after("<br>")
-    $(".da-field-buttons > div > .btn-da-custom").first().before("<br>")
-  </script>
----
-comment: |
-  This is a hack until other code gets developed. 
-id: signature wait screen
-question: |
-  % if device().is_pc:
-  Click ${word("next")} on this screen once your client has finished signing on their phone
-  % else:
-  You have been asked to sign this PDF. Click to review it.    
-  ${form_to_sign}  
-  Click ${word("next")} on this screen when you're ready to sign.
-  % endif  
-field: signature_wait_screen
-decoration: file-signature
----
-id: signature-phone
-question: |
-  Text your client a link to sign this form
-fields:
-  - label: Cell phone number
-    field: link_cell
-  - note: |
-      Click ${word("next")} to add your signature.
-    show if: 
-      code: |
-        not device().is_pc
-continue button field: saw_signature_qrcode
----
-id: signature phone followup
-question: |
-  Thank you for signing. You can now close this browser on your phone.  
-field: signature_phone_followup  
----
-template: interview_link
+# Customize to leave out default instructions for unwilling signers
+template: unwilling_instructions
 content: |
-  Hi, your attorney ${ users[0] } would like to you to sign a Notice of Limited
-  Appearance. To sign the form, click the link below:  
-  ${interview_url()}
----
-code: |
-  started_on_phone = device().is_mobile
----
-code: |
-  send_sms(task='send signature link', to=link_cell,template=interview_link)
-  sms_was_sent = True 
----
-code: |
-  users[0].signature
-  attorney_signature_date
-  #is the client available to sign
-  if client_can_sign_now:
-    #want user to be able to send link to client to sign
-    link_cell
-    sms_was_sent
-    # TODO & BUG: what if client accepts the text on their computer?
-    if device().is_mobile:
-      clients[0].signature
-      signature_date = today()
-    else:
-      signature_wait_screen
-  else:
-    clients[0].signature = ""
-    signature_date = ""
-  signature_flow = True
----
-id: date of client signature
-question: |
- Dated:
-fields:
-  - Date: signature_date
-    datatype: date
-    default: ${today()}
+  
 ---
 id: download final form
 event: download
+reconsider:
+  - get_stored_data
+  - collect_signer_types
+  - unwilling_other_signers
+  - all_signatures_in
 question: |
-  Your form is ready
+  % if all_signatures_in:
+  Your document is ready
+  % else:
+  ${ clients[0] } still needs to sign your document
+  % endif
 subquestion: |
+  ${ other_signers_status_section }
+
   Look over the form below.
   
   1. If it looks correct, download or email it to yourself.
@@ -443,14 +402,8 @@ subquestion: |
   ${ final_form }
 attachment code: notice_of_limited_appearance
 ---
-sets: set_client_signature
-scan for variables: False
-code: |
-  signature_fields = ""
-  signature_date = ""
-  
-  set_client_signature = True
---- 
+# TODO past MVP: use `showifdef` for below
+---
 sets: set_empty_motion_details
 scan for variables: False
 code: |

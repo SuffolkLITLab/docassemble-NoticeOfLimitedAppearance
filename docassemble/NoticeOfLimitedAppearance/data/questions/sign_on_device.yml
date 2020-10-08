@@ -1,0 +1,180 @@
+comment: |
+  A flow for allowing signers to sign on the device with which they are most comfortable.
+
+  `generic object` is being used to allow more flexibility for developers using this module.
+  
+  ## Limitations:
+  - Right now the signer can't pick any device they want. It only differentiates between using a computer and a mobile device. A mobile device will always only present a signature. The execution order for handling multiple devices is complex unless it's broken into multiple interviews.
+
+  TODO: Try new `session_local` da feature. I suspect it won't be completely sufficient. Need combo of device and user ids. I think `device` may have a thing now in that same section.
+  TODO: Try using action arguments for every question to identify/verify devices
+  TODO: Does this need `multi_user` when the parent interview doesn't have it?
+---
+modules:
+  - docassemble.VirtualCourtToolbox.misc
+---
+event: x.sign_on_device
+generic object: Individual
+# Cannot be triggered by an action (because of generic object)
+code: |
+  
+  if defined(x.attr_name('signature')):
+    x.after_signature
+
+  # which_device: atm really means 'wants to use any computer'
+  # If not on computer or wants to sign on computer
+  elif (device() and not device().is_pc) or x.which_device == 'this device':
+    x.signature.set_attributes(persistent=True, private=False)
+    x.after_signature
+  else:
+    x.device_number
+    x.send_signature_link
+    x.wait_for_signature
+---
+event: x.wait_for_signature
+generic object: Individual
+code: |
+  if defined( x.attr_name( 'signature' )):
+    x.after_signature
+    
+  elif x.action_after_device_choice == 'wants_computer':
+    x.signature
+  elif x.action_after_device_choice == 'wants_mobile':
+    undefine( x.attr_name( 'device_number' ))
+    undefine( x.attr_name( 'send_signature_link' ))
+    undefine( x.attr_name( 'action_after_device_choice' ))
+
+  # Otherwise, let them change the device they want to use
+  else:
+    x.said_had_signed_on_other_device = True  # For custom waiting screen text
+    undefine( x.attr_name( 'action_after_device_choice' ))
+    x.wait_for_signature
+---
+# Starting value
+generic object: Individual
+code: |
+  x.said_had_signed_on_other_device = False
+---
+# Fallback
+generic object: Individual
+code: |
+  x.has_signed = False
+---
+###################
+#  Questions
+##################
+---
+id: x.willing_to_sign
+generic object: Individual
+question: |
+  Are you willing to sign this document?
+yesno: x.willing_to_sign
+---
+id: x.end_with_unwilling_to_sign
+event: x.end_with_unwilling_to_sign
+generic object: Individual
+question: |
+  Thank you
+subquestion: |
+  You can close this window now.
+---
+# TODO: Always send with action arguments with unique ID
+id: x.which_device
+generic object: Individual
+question: |
+  Where do you want to sign this?
+subquestion: |
+  Do you want to sign on this computer or on a phone or tablet instead?
+field: x.which_device
+buttons:
+  - This computer: this device
+    image: desktop
+  - A phone or tablet: other device
+    image: mobile-alt
+script: |
+  <script>
+    $(".da-field-buttons > div > .btn-da-custom").last().after("<br>")
+    $(".da-field-buttons > div > .btn-da-custom").first().before("<br>")
+  </script>
+---
+id: x.signature
+generic object: Individual
+question: |
+  ${ x }, sign below
+signature: x.signature
+---
+# DEVELOPER: Copy this and use it to lead to the next code or question block.
+id: x.after_signature
+event: x.after_signature
+generic object: Individual
+code: |
+  # Whatever you want to do next
+---
+id: link for mobile
+generic object: Individual
+question: |
+  Sign on a phone or tablet
+subquestion: |
+  You can text yourself a link or you can use the QR code.
+fields:
+  - I want you to text me the link: should_text_singature_link
+    datatype: yesnowide
+  - Number to text: x.device_number
+    default: ${ showifdef( x.attr_name( 'mobile_number' )) }
+    required: False
+    show if: should_text_singature_link
+  - note: |
+      ---
+      
+      To use this QR code:
+
+      1. Open the camera app or barcode reader app on your phone.
+      1. Point your phone at the QR code to scan it.
+      1. Tap the pop-up notification.
+      
+      <center>
+      [QR ${ device_choice_url }]
+      </center>
+continue button field: x.saw_qr_code
+---
+id: x.wants_to_change_device
+generic object: Individual
+question: |
+  Did you sign yet?
+subquestion: |
+  We sent a link to ${ x.device_number }.
+  
+  We have not gotten your signature yet.
+fields:
+  - no label: x.action_after_device_choice
+    datatype: radio
+    choices:
+      - I signed: has_signed
+      - I want to sign on my computer: wants_computer
+      - I want to send the link to a different number: wants_mobile
+---
+############################
+# Messages
+############################
+---
+generic object: Individual
+code: |
+  if defined( x.attr_name( 'device_number' )):
+    x.message_result = send_sms( to=x.device_number, template=x.sms_device_template)
+  x.send_signature_link = True
+---
+generic object: Individual
+template: x.sms_device_template
+content: |
+  ${ x.familiar() }, tap the link to sign your document. ${ device_choice_url }
+---
+generic object: Individual
+code: |
+  # `action` experiments for true device choice would begin here
+  long_device_choice_url = interview_url_action( 'signature_with_device_choice', device_id='tbd', signature_data_id=signature_data_id, party_id=x.id )
+  device_choice_url = shortenMe( long_device_choice_url ).shortenedURL
+---
+# Triggered by new device
+event: signature_with_device_choice
+code: |
+  users[0].sign_on_device
