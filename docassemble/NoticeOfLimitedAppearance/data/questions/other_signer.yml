@@ -13,7 +13,7 @@ include:
   - sign_on_device.yml
 ---
 metadata:
-  title: Motion to Dismiss a Non-Essential Eviction
+  title: Your Signature has been Requested
 ---
 modules:
   - docassemble.VirtualCourtToolbox.misc
@@ -135,7 +135,6 @@ content: |
 template: signed_email_template
 subject: |
   ${ email_subject }
-#  ${ signer } has signed your Motion to Dismiss
 content: |
   ${ redis.get_data( signature_data_id )['user_names'] },
 
@@ -171,7 +170,6 @@ template: unwilling_email_template
 # TODO: When feature is ready, add that they can edit/resend to other signers
 subject: |
   ${ email_subject }
-#  ${ signer } will not sign you Motion to Dismiss
 content: |
   ${ redis.get_data( signature_data_id )['user_names'] },
   
