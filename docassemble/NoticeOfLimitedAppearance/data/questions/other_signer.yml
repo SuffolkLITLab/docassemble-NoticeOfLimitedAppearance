@@ -16,7 +16,7 @@ metadata:
   title: Motion to Dismiss a Non-Essential Eviction
 ---
 modules:
-  - docassemble.VirtualCourtToolbox.misc
+  - docassemble.AssemblyLineToolbox.misc
   - .other_signer
 ---
 objects:

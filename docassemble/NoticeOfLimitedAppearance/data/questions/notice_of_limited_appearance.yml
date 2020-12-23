@@ -39,7 +39,8 @@ code: |
   interview_presets
   basic_questions_intro_screen
   agrees_to_certify
-  ask_court_question
+  courts[0]
+  #ask_court_question
   docket_numbers
   users[0].name.first
   plaintiff_name
@@ -123,16 +124,15 @@ fields:
       minlength: |
         You cannot continue unless you check this box.
 ---
-id: court question
 question: |
-  What court is this case being heard in?
+  What court is your case in?
 subquestion: |
-  The local court can be found by using the [Courthouse Locator](https://www.mass.gov/guides/find-a-courthouse-serving-you).
 fields:
-  - Court name: courts[0]
+  - no label: courts[0]
     datatype: object
-    choices: macourts.filter_courts(allowed_courts)
-continue button field: ask_court_question
+    object labeler: |
+      lambda y: y.short_label()
+    choices: macourts.filter_courts(allowed_courts)    
 ---
 id: docket numbers
 question: |
@@ -286,6 +286,7 @@ fields:
     required: False
   - B.B.O. Number: bbo_number
   - Street Address: users[0].address.address
+    address autocomplete: True
   - Apt/Unit Number: users[0].address.unit
     required: False
   - City: users[0].address.city

@@ -11,7 +11,7 @@ comment: |
   TODO: Does this need `multi_user` when the parent interview doesn't have it?
 ---
 modules:
-  - docassemble.VirtualCourtToolbox.misc
+  - docassemble.AssemblyLineToolbox.misc
 ---
 event: x.sign_on_device
 generic object: Individual
