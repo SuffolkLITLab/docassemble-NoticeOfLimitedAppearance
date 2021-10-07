@@ -13,7 +13,7 @@ comment: |
 ---
 # Make own function to make this more independent?
 modules:
-  - docassemble.AssemblyLineToolbox.misc
+  - docassemble.ALToolbox.misc
 ---
 include:
   - sign_on_device.yml

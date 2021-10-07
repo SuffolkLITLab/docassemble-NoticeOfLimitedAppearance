@@ -16,7 +16,7 @@ metadata:
   title: Your Signature has been Requested
 ---
 modules:
-  - docassemble.AssemblyLineToolbox.misc
+  - docassemble.ALToolbox.misc
   - .other_signer
 ---
 objects:
