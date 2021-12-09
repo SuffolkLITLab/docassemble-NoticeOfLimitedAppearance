@@ -1,7 +1,19 @@
 include:
-  - docassemble.MAVirtualCourt:basic-questions.yml
+  - docassemble.AssemblyLine:al_package.yml
+  - docassemble.MassAccess:massaccess.yml
   - signer.yml
   - sign_on_device.yml
+---
+metadata:
+  title: |
+    Notice of Limited Appearance
+  short title: |
+    Limited Appearance
+  authors:
+    - Fionola Hughes
+    - Sinéad Vaughan
+    - Mia Bonardi
+    - Plocket
 ---
 comment: |
   Predefine some variables we need
@@ -23,14 +35,9 @@ code: |
       "Superior Court",
        ] 
   interview_presets = True
----  
-code: |       
-  #final_form_to_file = notice_of_limited_appearance
-  #form_to_file_no_cover = notice_of_limited_appearance
-  final_form = notice_of_limited_appearance
 ---
 objects:  
-  - clients: PeopleList.using(auto_gather=False, complete_attribute='complete')
+  - clients: ALPeopleList.using(auto_gather=False, complete_attribute='complete')
 ---
 id: interview order
 mandatory: True
@@ -39,7 +46,7 @@ code: |
   interview_presets
   basic_questions_intro_screen
   agrees_to_certify
-  courts[0]
+  trial_court
   #ask_court_question
   docket_numbers
   users[0].name.first
@@ -123,16 +130,6 @@ fields:
     validation messages:
       minlength: |
         You cannot continue unless you check this box.
----
-question: |
-  What court is your case in?
-subquestion: |
-fields:
-  - no label: courts[0]
-    datatype: object
-    object labeler: |
-      lambda y: y.short_label()
-    choices: macourts.filter_courts(allowed_courts)    
 ---
 id: docket numbers
 question: |
@@ -275,9 +272,6 @@ validation code: |
       (not showifdef('need_others_details'))):
     validation_error(word("You need to state at least one event/issue."))
 ---
-need: agrees_to_tos
-question: All done
----
 id: user address
 question: |
   Your contact information
@@ -323,7 +317,8 @@ subquestion: |
   
   You can download and print this form unsigned or continue to e-sign.
   
-  ${ form_to_sign }
+  ${ notice_of_limited_appearance_attachment.as_pdf(key='preview') }
+  
 continue button field: preview_screen
 ---
 #id: client availability
@@ -339,19 +334,16 @@ continue button field: preview_screen
 #  **Is your ${clients[0].name} ready to sign now?**
 #yesno: client_can_sign_now
 ---
-code: |
- form_to_sign = pdf_concatenate(preview_doc)
+objects:
+  - notice_of_limited_appearance_attachment: ALDocument.using(title="Notice of Limited Appearance", filename="notice_of_limited_appearance", enabled=True)
 ---
-attachment:
-  docx template file: notice_of_limited_appearance.docx
-  variable name: preview_doc
----
-code: |
-  final_form = pdf_concatenate(notice_of_limited_appearance)
+objects:
+  - al_user_bundle: ALDocumentBundle.using(title="Notice of Limited Appearance", filename="notice_of_limited_appearance", enabled=True, elements=[notice_of_limited_appearance_attachment])
+  - al_court_bundle: ALDocumentBundle.using(title="Notice of Limited Appearance", filename="notice_of_limited_appearance", enabled=True, elements=[notice_of_limited_appearance_attachment])  
 ---
 attachment: 
   docx template file: notice_of_limited_appearance.docx
-  variable name: notice_of_limited_appearance
+  variable name: notice_of_limited_appearance_attachment[i]
 ---
 #id: attorney signature
 #question: |
@@ -393,15 +385,16 @@ subquestion: |
   Look over the form below.
   
   1. If it looks correct, download or email it to yourself.
-  2. You still need to deliver it to the ${courts[0]}. You may be able to get help with delivery if you call
+  2. You still need to deliver it to the ${ trial_court }. You may be able to get help with delivery if you call
   the court's emergency help line.
   Court's emergency help line:    
   833-91-COURT (833-912-6878)  
   Monday-Friday  
   8:30am - 4:30pm
   
-  ${ final_form }
-attachment code: notice_of_limited_appearance
+  ${ al_user_bundle.download_list_html() }
+  
+  ${ al_user_bundle.send_button_html() }
 ---
 # TODO past MVP: use `showifdef` for below
 ---

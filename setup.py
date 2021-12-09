@@ -53,7 +53,7 @@ setup(name='docassemble.NoticeOfLimitedAppearance',
       url='https://docassemble.org',
       packages=find_packages(),
       namespace_packages=['docassemble'],
-      install_requires=['docassemble.ALToolbox>=0.2.1'],
+      install_requires=['docassemble.ALToolbox>=0.3.6'],
       zip_safe=False,
       package_data=find_package_data(where='docassemble/NoticeOfLimitedAppearance/', package='docassemble.NoticeOfLimitedAppearance'),
      )
