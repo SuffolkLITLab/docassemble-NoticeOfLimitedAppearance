@@ -1,3 +1,51 @@
+metadata:
+  title: |
+    Notice of Limited Appearance Representation
+  short title: |
+    Limited Appearance
+  description: |
+    If you are an attorney who is providing limited representation in a case, you can 
+    use this intervew to notify the court and other parties. This document must
+    be filed to appear in the case without committing to representing the client in full.
+
+    Limited appearance can mean many things, including:
+
+    * Representing at trial but not appeal
+    * Representing in court for a single hearing
+    * Helping the client with a motion but not the whole case
+
+    This interview will allow you to send it to another person, such as your client, to
+    get their signature remotely.
+  can_I_use_this_form: |
+    You can use this form if you are an attorney who is providing limited representation in a case.
+
+    Your client does not need to be in the same room as you.
+  before_you_start: |
+    Make sure you have a contact phone number or email address for the person you want to represent.
+  maturity: production
+  estimated_completion_minutes: 5
+  estimated_completion_delta: 2
+  languages:
+    - en
+  help_page_url: ""
+  help_page_title: ""
+  LIST_topics: 
+    - CO-03-00-00-00
+    - CO-01-00-00-00
+  tags: 
+    - CO-03-00-00-00
+    - CO-01-00-00-00
+  jurisdiction: NAM-US-US+MA
+  original_form: https://www.mass.gov/doc/notice-of-limited-appearance-tc005/download
+  original_form_published_on: 2019-01-01
+  review_date: 2024-04-27
+  form_titles:
+    - Notice of Limited Appearance
+  form_numbers:
+    - TC005 01/31/2019 JISD
+  fees:
+    - Filing fee: 0.00
+  update_notes: |
 include:
   - docassemble.MAVirtualCourt:basic-questions.yml
   - signer.yml
