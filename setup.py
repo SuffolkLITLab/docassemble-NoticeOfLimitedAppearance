@@ -43,7 +43,7 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
     return out
 
 setup(name='docassemble.NoticeOfLimitedAppearance',
-      version='0.1.0',
+      version='0.1.0.1',
       description=('A docassemble extension.'),
       long_description='# docassemble.NoticeOfLimitedAppearance\r\n\r\nA docassemble extension.\r\n\r\n## Author\r\n\r\nSinéad Vaughan, sineadmnvaughan@gmail.com\r\n\r\n',
       long_description_content_type='text/markdown',
