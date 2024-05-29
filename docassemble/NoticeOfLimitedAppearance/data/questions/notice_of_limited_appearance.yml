@@ -46,6 +46,7 @@ metadata:
   fees:
     - Filing fee: 0.00
   update_notes: |
+---  
 include:
   - docassemble.MAVirtualCourt:basic-questions.yml
   - signer.yml
