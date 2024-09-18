@@ -1,3 +1,9 @@
+---  
+include:
+  - docassemble.MAVirtualCourt:basic-questions.yml
+  - signer.yml
+  - sign_on_device.yml
+---
 metadata:
   title: |
     Notice of Limited Appearance Representation
@@ -46,11 +52,6 @@ metadata:
   fees:
     - Filing fee: 0.00
   update_notes: |
----  
-include:
-  - docassemble.MAVirtualCourt:basic-questions.yml
-  - signer.yml
-  - sign_on_device.yml
 ---
 comment: |
   Predefine some variables we need
