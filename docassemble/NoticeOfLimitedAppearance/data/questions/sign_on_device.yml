@@ -68,7 +68,9 @@ id: x.willing_to_sign
 generic object: Individual
 question: |
   Are you willing to sign this document?
-yesno: x.willing_to_sign
+fields:
+  - no label: x.willing_to_sign
+    datatype: yesnoradio
 ---
 id: x.end_with_unwilling_to_sign
 event: x.end_with_unwilling_to_sign

@@ -207,7 +207,7 @@ subquestion: |
   How are you going to get ${ x.familiar() }'s signature on this document?
 #  * ask you to sign for them,
 fields:
-  - no label: x.sign_method
+  - "How will ${ x } sign this document?": x.sign_method
     datatype: radio
     choices:
       - __Email__ ${ x.familiar() } a link: email
@@ -233,7 +233,9 @@ subquestion: |
   % if len(x.elements) > 0:
   You already told us about ${comma_and_list(set(x.elements))}
   % endif
-yesno: x.there_is_another
+fields:
+  - no label: x.there_is_another
+    datatype: yesnoradio
 ---
 # Only triggered for signers who user is signing for.
 # Using intrinsic names is not enough.
