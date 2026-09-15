@@ -101,7 +101,9 @@ subquestion: |
   This is ${ redis.get_data( signature_data_id )['user_names'] }'s document. Are you willing to sign it?
 
   ${ redis.get_data( signature_data_id )['preview'] }
-yesno: x.willing_to_sign
+fields:
+  - no label: x.willing_to_sign
+    datatype: yesnoradio
 ---
 id: x.after_signature_saved
 event: x.after_signature_saved
