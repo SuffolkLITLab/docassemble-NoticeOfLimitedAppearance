@@ -261,7 +261,7 @@ id: events or issues
 question: |
   What court events or issues are you representing your client in?
 subquestion: |
-  You and your Client have both signed a written agreement for you to represent your client on a limited basis in the following court events or discrete issues as described below (list event date where applicable).
+  You and your client have both signed a written agreement for you to represent your client on a limited basis in the following court events or discrete issues as described below (list event date where applicable).
 fields:
   - Motion: need_motion
     datatype: yesno
