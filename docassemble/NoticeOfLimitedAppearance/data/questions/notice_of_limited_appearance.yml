@@ -142,7 +142,7 @@ code: |
   else:
     unauthorized
 ---
-id: 404
+id: "404"
 event: unauthorized
 code: |
   response('Page not found', response_code=404)
@@ -161,7 +161,7 @@ question: |
 subquestion: |
   I certify that...
    
-   - I have completed an approved [LAR information session](https://www.mass.gov/doc/uniform-limited-assistance-representation-training-protocol/download) as required,
+   - I have completed an approved [LAR information session](https://www.mass.gov/info-details/uniform-protocol-for-limited-assistance-representation-training-in-the-massachusetts-trial-court) as required,
    - that I have signed a [written agreement with the Client](https://www.mass.gov/trial-court-rules/trial-court-rule-xvi-uniform-rule-on-limited-assistance-representation#1-limited-assistance-representation) to provide the limited representation in this matter, and 
    - that I have served this Notice of Limited Appearance on this Party, all counsel and all parties not represented by counsel.
 fields:
@@ -268,7 +268,7 @@ fields:
     required: False
   - Details about motion: need_motion_details
     show if: need_motion
-  - Date: need_motion_date
+  - Motion date: need_motion_date
     datatype: date
     required: False
     show if: need_motion
@@ -277,7 +277,7 @@ fields:
     required: False  
   - Details about hearing: need_hearing_details
     show if: need_hearing
-  - Date: need_hearing_date
+  - Hearing date: need_hearing_date
     datatype: date
     required: False
     show if: need_hearing 
@@ -286,7 +286,7 @@ fields:
     required: False 
   - Details about ADR: need_adr_details
     show if: need_adr
-  - Date: need_adr_date
+  - ADR date: need_adr_date
     datatype: date
     required: False
     show if: need_adr 
@@ -295,7 +295,7 @@ fields:
     required: False   
   - Details about Other Court Event: need_other_court_event_details
     show if: need_other_court_event
-  - Date: need_other_court_event_date
+  - Other Court Event Date: need_other_court_event_date
     datatype: date
     required: False
     show if: need_other_court_event  
@@ -304,7 +304,7 @@ fields:
     required: False
   - Details about trial: need_trial_details
     show if: need_trial
-  - Date: need_trial_date
+  - Trial date: need_trial_date
     datatype: date
     required: False
     show if: need_trial
@@ -313,7 +313,7 @@ fields:
     required: False
   - Details about others: need_others_details
     show if: need_others
-  - Date: need_others_date
+  - Others date: need_others_date
     datatype: date
     required: False
     show if: need_others
