@@ -24,7 +24,6 @@ objects:
   - signer: Individual
   #- signer.devices: DAList.using(object_type=DAObject, auto_gather=False, gathered=True, there_is_another=False)  # For adding devices with actions
 ---
-mandatory: True
 code: |
   multi_user = True
 ---
@@ -32,6 +31,7 @@ code: |
 # This can be customized as well if you want to do different stuff before running the rest
 mandatory: True
 code: |
+  multi_user
   get_remote_signature
 ---
 # Must be able to be triggered by action (from other device chosen)
@@ -254,7 +254,7 @@ question: |
 buttons:
   - Exit: exit
 ---
-id: 404
+id: "404"
 # Preferred?
 event: unauthorized
 code: |
