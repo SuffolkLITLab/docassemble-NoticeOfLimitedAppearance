@@ -162,8 +162,8 @@ subquestion: |
   I certify that...
    
    - I have completed an approved [LAR information session](https://www.mass.gov/info-details/uniform-protocol-for-limited-assistance-representation-training-in-the-massachusetts-trial-court) as required,
-   - that I have signed a [written agreement with the Client](https://www.mass.gov/trial-court-rules/trial-court-rule-xvi-uniform-rule-on-limited-assistance-representation#1-limited-assistance-representation) to provide the limited representation in this matter, and 
-   - that I have served this Notice of Limited Appearance on this Party, all counsel and all parties not represented by counsel.
+   - That I have signed a [written agreement with the client](https://www.mass.gov/trial-court-rules/trial-court-rule-xvi-uniform-rule-on-limited-assistance-representation#1-limited-assistance-representation) to provide the limited representation in this matter, and 
+   - That I have served this Notice of Limited Appearance on this party, all counsel and all parties not represented by counsel.
 fields:
   - no label: agrees_to_certify
     datatype: checkboxes
